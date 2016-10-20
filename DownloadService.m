@@ -2,9 +2,6 @@
 //  DownloadService.m
 //  DownloadAndDisplayLocalHTML
 //
-//  Created by admin on 5/21/16.
-//  Copyright © 2016 BrighterBrain. All rights reserved.
-//
 
 #import "DownloadService.h"
 
