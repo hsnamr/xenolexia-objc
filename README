@@ -5,3 +5,4 @@ For now, it is a proof of concept, with support limited to HTML documents
 The ultimate goal is:
 1. variable difficulty
 2. support for open and unencyrpted ePub format
+3. actual .framework that can be added with CocoaPod and Carthage
