@@ -1,0 +1,7 @@
+Xenolexia is an idea and a framework designed around helping you learn a new language by selectively translating words in your favorite book. Every few pages, a few words are translated into the target language. This way as you read a book in your native tongue, you will gradually buildup vocabulary in the language you want to learn.
+
+For now, it is a proof of concept, with support limited to HTML documents
+
+The ultimate goal is:
+1. variable difficulty
+2. support for open and unencyrpted ePub format
