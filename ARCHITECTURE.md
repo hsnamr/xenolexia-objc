@@ -23,13 +23,9 @@ xenolexia-objc/
 │   ├── macOS/                     # macOS-specific UI
 │   ├── iOS/                       # iOS-specific UI
 │   └── Linux/                     # GNUStep UI
-├── Book.h/m                       # Legacy book model (deprecated)
-├── DictionaryService.h/m          # Legacy dictionary service
-├── TranslationService.h/m          # Legacy translation service
-├── DownloadService.h/m             # File download service
-├── HtmlToTextService.h/m          # HTML to text conversion
-├── LocationService.h/m            # Location services (iOS/macOS only)
-└── Manager.h/m                    # Legacy manager (deprecated, use XLManager)
+├── DictionaryService.h/m          # Legacy dictionary service (used for backward compatibility)
+├── TranslationService.h/m          # Legacy translation service (used by XLTranslationService)
+└── DownloadService.h/m             # File download service (used by XLManager)
 
 ```
 

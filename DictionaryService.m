@@ -4,7 +4,6 @@
 //
 
 #import "DictionaryService.h"
-#import "Manager.h"
 
 //@interface DictionaryService()
 //
