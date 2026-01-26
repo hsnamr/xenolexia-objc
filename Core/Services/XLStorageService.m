@@ -19,10 +19,9 @@
 
 + (instancetype)sharedService {
     static XLStorageService *sharedService = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
+    if (sharedService == nil) {
         sharedService = [[self alloc] init];
-    });
+    }
     return sharedService;
 }
 
@@ -41,9 +40,11 @@
     int result = sqlite3_open([self.databasePath UTF8String], &_database);
     if (result != SQLITE_OK) {
         if (completion) {
+            NSDictionary *userInfo = [NSDictionary dictionaryWithObject:@"Failed to open database"
+                                                                 forKey:NSLocalizedDescriptionKey];
             completion(NO, [NSError errorWithDomain:@"XLStorageService"
                                                code:result
-                                           userInfo:@{NSLocalizedDescriptionKey: @"Failed to open database"}]);
+                                           userInfo:userInfo]);
         }
         return;
     }
@@ -92,9 +93,11 @@
     char *errorMsg = NULL;
     if (sqlite3_exec(self.database, [createBooksTable UTF8String], NULL, NULL, &errorMsg) != SQLITE_OK) {
         if (completion) {
+            NSDictionary *userInfo = [NSDictionary dictionaryWithObject:[NSString stringWithUTF8String:errorMsg ?: "Unknown error"]
+                                                                  forKey:NSLocalizedDescriptionKey];
             completion(NO, [NSError errorWithDomain:@"XLStorageService"
                                               code:1
-                                          userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithUTF8String:errorMsg ?: "Unknown error"]}]);
+                                          userInfo:userInfo]);
         }
         sqlite3_free(errorMsg);
         return;
@@ -133,7 +136,7 @@
 - (void)getAllBooksWithCompletion:(void(^)(NSArray<XLBook *> * _Nullable books, NSError * _Nullable error))completion {
     // Implementation would query database
     if (completion) {
-        completion(@[], nil);
+        completion([[NSArray alloc] init], nil);
     }
 }
 
@@ -161,7 +164,7 @@
 - (void)getAllVocabularyItemsWithCompletion:(void(^)(NSArray<XLVocabularyItem *> * _Nullable items, NSError * _Nullable error))completion {
     // Implementation would query database
     if (completion) {
-        completion(@[], nil);
+        completion([[NSArray alloc] init], nil);
     }
 }
 
@@ -175,7 +178,7 @@
 - (void)searchVocabularyWithQuery:(NSString *)query withCompletion:(void(^)(NSArray<XLVocabularyItem *> * _Nullable items, NSError * _Nullable error))completion {
     // Implementation would search database
     if (completion) {
-        completion(@[], nil);
+        completion([[NSArray alloc] init], nil);
     }
 }
 

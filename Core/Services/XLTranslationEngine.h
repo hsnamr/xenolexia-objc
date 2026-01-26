@@ -18,7 +18,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) XLLanguagePair *languagePair;
 @property (nonatomic) XLProficiencyLevel proficiencyLevel;
 @property (nonatomic) double wordDensity; // 0.0 - 1.0
-@property (nonatomic, strong) NSArray<NSString *> *excludeWords;
+@property (nonatomic, retain) NSArray *excludeWords;
 
 + (instancetype)optionsWithLanguagePair:(XLLanguagePair *)languagePair
                        proficiencyLevel:(XLProficiencyLevel)proficiencyLevel
@@ -37,7 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Process HTML content string
 - (void)processContent:(NSString *)content
-        withCompletion:(void(^)(NSString * _Nullable processedContent, NSArray<XLForeignWordData *> * _Nullable foreignWords, NSError * _Nullable error))completion;
+        withCompletion:(void(^)(NSString *processedContent, NSArray *foreignWords, NSError *error))completion;
 
 @end
 

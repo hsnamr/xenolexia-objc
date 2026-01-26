@@ -14,20 +14,20 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Parse a book file and extract its content
 - (void)parseBookAtPath:(NSString *)filePath
-          withCompletion:(void(^)(XLParsedBook * _Nullable parsedBook, NSError * _Nullable error))completion;
+          withCompletion:(void(^)(XLParsedBook *parsedBook, NSError *error))completion;
 
 /// Get a specific chapter by index
 - (void)getChapterAtIndex:(NSInteger)chapterIndex
                  fromPath:(NSString *)filePath
-           withCompletion:(void(^)(XLChapter * _Nullable chapter, NSError * _Nullable error))completion;
+           withCompletion:(void(^)(XLChapter *chapter, NSError *error))completion;
 
 /// Get table of contents
 - (void)getTableOfContentsFromPath:(NSString *)filePath
-                      withCompletion:(void(^)(NSArray<XLTOCItem *> * _Nullable toc, NSError * _Nullable error))completion;
+                      withCompletion:(void(^)(NSArray *toc, NSError *error))completion;
 
 /// Get book metadata
 - (void)getMetadataFromPath:(NSString *)filePath
-              withCompletion:(void(^)(XLBookMetadata * _Nullable metadata, NSError * _Nullable error))completion;
+              withCompletion:(void(^)(XLBookMetadata *metadata, NSError *error))completion;
 
 @end
 

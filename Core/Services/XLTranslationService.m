@@ -10,17 +10,16 @@
 
 + (instancetype)sharedService {
     static XLTranslationService *sharedService = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
+    if (sharedService == nil) {
         sharedService = [[self alloc] init];
-    });
+    }
     return sharedService;
 }
 
 - (void)translateWord:(NSString *)word
          fromLanguage:(XLLanguage)sourceLanguage
            toLanguage:(XLLanguage)targetLanguage
-       withCompletion:(void(^)(NSString * _Nullable translatedWord, NSError * _Nullable error))completion {
+       withCompletion:(void(^)(NSString *translatedWord, NSError *error))completion {
     // For now, use the legacy TranslationService
     // This can be replaced with a proper translation API implementation
     TranslationService *legacyService = [TranslationService sharedTranslator];
@@ -47,7 +46,7 @@
     __block NSInteger completed = 0;
     
     if (words.count == 0) {
-        if (completion) completion(@[], nil);
+        if (completion) completion([[NSArray alloc] init], nil);
         return;
     }
     
@@ -55,7 +54,7 @@
         [self translateWord:word
                fromLanguage:sourceLanguage
                  toLanguage:targetLanguage
-             withCompletion:^(NSString * _Nullable translatedWord, NSError * _Nullable error) {
+             withCompletion:^(NSString *translatedWord, NSError *error) {
             if (error) {
                 lastError = error;
             } else if (translatedWord) {
@@ -63,7 +62,7 @@
             }
             
             completed++;
-            if (completed == words.count) {
+            if (completed == [words count]) {
                 if (completion) {
                     completion([translatedWords copy], lastError);
                 }

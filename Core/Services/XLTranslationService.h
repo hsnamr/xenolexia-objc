@@ -16,13 +16,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)translateWord:(NSString *)word
          fromLanguage:(XLLanguage)sourceLanguage
            toLanguage:(XLLanguage)targetLanguage
-       withCompletion:(void(^)(NSString * _Nullable translatedWord, NSError * _Nullable error))completion;
+       withCompletion:(void(^)(NSString *translatedWord, NSError *error))completion;
 
 /// Translate an array of words
-- (void)translateWords:(NSArray<NSString *> *)words
+- (void)translateWords:(NSArray *)words
           fromLanguage:(XLLanguage)sourceLanguage
             toLanguage:(XLLanguage)targetLanguage
-        withCompletion:(void(^)(NSArray<NSString *> * _Nullable translatedWords, NSError * _Nullable error))completion;
+        withCompletion:(void(^)(NSArray *translatedWords, NSError *error))completion;
 
 /// Pronounce a word (text-to-speech)
 - (void)pronounceWord:(NSString *)word

@@ -46,7 +46,7 @@ typedef NS_ENUM(NSInteger, XLTextAlign) {
 @property (nonatomic, copy) NSString *foreignWord;
 @property (nonatomic) NSInteger startIndex;
 @property (nonatomic) NSInteger endIndex;
-@property (nonatomic, strong) XLWordEntry *wordEntry;
+@property (nonatomic, retain) XLWordEntry *wordEntry;
 
 + (instancetype)dataWithOriginalWord:(NSString *)originalWord
                            foreignWord:(NSString *)foreignWord
@@ -59,7 +59,7 @@ typedef NS_ENUM(NSInteger, XLTextAlign) {
 /// Processed chapter with foreign words
 @interface XLProcessedChapter : XLChapter
 
-@property (nonatomic, strong) NSArray<XLForeignWordData *> *foreignWords;
+@property (nonatomic, retain) NSArray *foreignWords;
 @property (nonatomic, copy) NSString *processedContent; // HTML with foreign words marked
 
 @end
@@ -69,8 +69,8 @@ typedef NS_ENUM(NSInteger, XLTextAlign) {
 
 @property (nonatomic, copy) NSString *sessionId;
 @property (nonatomic, copy) NSString *bookId;
-@property (nonatomic, strong) NSDate *startedAt;
-@property (nonatomic, nullable, strong) NSDate *endedAt;
+@property (nonatomic, retain) NSDate *startedAt;
+@property (nonatomic, retain) NSDate *endedAt;
 @property (nonatomic) NSInteger pagesRead;
 @property (nonatomic) NSInteger wordsRevealed;
 @property (nonatomic) NSInteger wordsSaved;

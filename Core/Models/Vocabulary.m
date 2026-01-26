@@ -20,7 +20,7 @@
     entry.proficiencyLevel = XLProficiencyLevelBeginner;
     entry.frequencyRank = 0;
     entry.partOfSpeech = XLPartOfSpeechOther;
-    entry.variants = @[];
+        entry.variants = [[NSArray alloc] init];
     entry.pronunciation = nil;
     return entry;
 }
@@ -36,7 +36,7 @@
         _proficiencyLevel = XLProficiencyLevelBeginner;
         _frequencyRank = 0;
         _partOfSpeech = XLPartOfSpeechOther;
-        _variants = @[];
+        _variants = [[NSArray alloc] init];
         _pronunciation = nil;
     }
     return self;

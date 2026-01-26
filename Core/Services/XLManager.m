@@ -28,10 +28,9 @@
 
 + (instancetype)sharedManager {
     static XLManager *sharedManager = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
+    if (sharedManager == nil) {
         sharedManager = [[self alloc] init];
-    });
+    }
     return sharedManager;
 }
 
@@ -46,7 +45,7 @@
         _downloadService = [[DownloadService alloc] init];
         
         // Initialize storage
-        [_storageService initializeDatabaseWithCompletion:^(BOOL success, NSError * _Nullable error) {
+        [_storageService initializeDatabaseWithCompletion:^(BOOL success, NSError *error) {
             if (!success) {
                 NSLog(@"Failed to initialize database: %@", error);
             }
@@ -58,8 +57,8 @@
 #pragma mark - Book Operations
 
 - (void)importBookAtPath:(NSString *)filePath
-          withCompletion:(void(^)(XLBook * _Nullable book, NSError * _Nullable error))completion {
-    [self.bookParser parseBookAtPath:filePath withCompletion:^(XLParsedBook * _Nullable parsedBook, NSError * _Nullable error) {
+          withCompletion:(void(^)(XLBook *book, NSError *error))completion {
+    [self.bookParser parseBookAtPath:filePath withCompletion:^(XLParsedBook *parsedBook, NSError *error) {
         if (error) {
             if (completion) completion(nil, error);
             return;
@@ -71,7 +70,7 @@
                                             author:parsedBook.metadata.author ?: @""];
         book.filePath = filePath;
         book.format = [self detectFormat:filePath];
-        book.totalChapters = parsedBook.chapters.count;
+        book.totalChapters = [parsedBook.chapters count];
         
         // Save to storage
         [self.storageService saveBook:book withCompletion:^(BOOL success, NSError * _Nullable saveError) {
@@ -83,7 +82,7 @@
 }
 
 - (void)processBook:(XLBook *)book
-     withCompletion:(void(^)(XLProcessedChapter * _Nullable processedChapter, NSError * _Nullable error))completion {
+     withCompletion:(void(^)(XLProcessedChapter *processedChapter, NSError *error))completion {
     // Create translation options from book settings
     XLTranslationOptions *options = [XLTranslationOptions optionsWithLanguagePair:book.languagePair
                                                                  proficiencyLevel:book.proficiencyLevel
@@ -95,7 +94,7 @@
     // Get current chapter
     [self.bookParser getChapterAtIndex:book.currentChapter
                               fromPath:book.filePath
-                        withCompletion:^(XLChapter * _Nullable chapter, NSError * _Nullable error) {
+                        withCompletion:^(XLChapter *chapter, NSError *error) {
         if (error) {
             if (completion) completion(nil, error);
             return;
@@ -109,7 +108,7 @@
 #pragma mark - Translation Operations
 
 - (void)translateWord:(NSString *)word
-       withCompletion:(void(^)(NSString * _Nullable translatedWord, NSError * _Nullable error))completion {
+       withCompletion:(void(^)(NSString *translatedWord, NSError *error))completion {
     // Use default language pair (can be made configurable)
     XLLanguagePair *languagePair = [XLLanguagePair pairWithSource:XLLanguageEnglish target:XLLanguageFrench];
     
@@ -127,11 +126,11 @@
 #pragma mark - Vocabulary Operations
 
 - (void)saveWordToVocabulary:(XLVocabularyItem *)item
-               withCompletion:(void(^)(BOOL success, NSError * _Nullable error))completion {
+               withCompletion:(void(^)(BOOL success, NSError *error))completion {
     [self.storageService saveVocabularyItem:item withCompletion:completion];
 }
 
-- (void)getAllVocabularyItemsWithCompletion:(void(^)(NSArray<XLVocabularyItem *> * _Nullable items, NSError * _Nullable error))completion {
+- (void)getAllVocabularyItemsWithCompletion:(void(^)(NSArray *items, NSError *error))completion {
     [self.storageService getAllVocabularyItemsWithCompletion:completion];
 }
 

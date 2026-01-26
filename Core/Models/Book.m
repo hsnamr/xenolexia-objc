@@ -112,7 +112,7 @@
         _publisher = nil;
         _publishDate = nil;
         _isbn = nil;
-        _subjects = @[];
+        _subjects = [[NSArray alloc] init];
     }
     return self;
 }
@@ -185,8 +185,8 @@
     self = [super init];
     if (self) {
         _metadata = [[XLBookMetadata alloc] init];
-        _chapters = @[];
-        _tableOfContents = @[];
+        _chapters = [[NSArray alloc] init];
+        _tableOfContents = [[NSArray alloc] init];
         _totalWordCount = 0;
     }
     return self;

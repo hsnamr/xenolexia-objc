@@ -20,19 +20,19 @@ typedef NS_ENUM(NSInteger, XLExportFormat) {
 @interface XLExportService : NSObject
 
 /// Export vocabulary items to a file
-- (void)exportVocabularyItems:(NSArray<XLVocabularyItem *> *)items
+- (void)exportVocabularyItems:(NSArray *)items
                         format:(XLExportFormat)format
                     toFilePath:(NSString *)filePath
-                withCompletion:(void(^)(BOOL success, NSError * _Nullable error))completion;
+                withCompletion:(void(^)(BOOL success, NSError *error))completion;
 
 /// Export to CSV format
-- (NSString *)exportToCSV:(NSArray<XLVocabularyItem *> *)items;
+- (NSString *)exportToCSV:(NSArray *)items;
 
 /// Export to JSON format
-- (NSString *)exportToJSON:(NSArray<XLVocabularyItem *> *)items;
+- (NSString *)exportToJSON:(NSArray *)items;
 
 /// Export to Anki TSV format
-- (NSString *)exportToAnki:(NSArray<XLVocabularyItem *> *)items;
+- (NSString *)exportToAnki:(NSArray *)items;
 
 @end
 

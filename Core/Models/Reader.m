@@ -98,7 +98,7 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _foreignWords = @[];
+        _foreignWords = [[NSArray alloc] init];
         _processedContent = @"";
     }
     return self;

@@ -10,7 +10,7 @@
 + (instancetype)infoWithCode:(XLLanguage)code
                         name:(NSString *)name
                   nativeName:(NSString *)nativeName
-                       flag:(nullable NSString *)flag
+                       flag:(NSString *)flag
                          rtl:(BOOL)rtl {
     XLLanguageInfo *info = [[XLLanguageInfo alloc] init];
     if (info) {
@@ -23,45 +23,44 @@
     return info;
 }
 
-+ (NSArray<XLLanguageInfo *> *)supportedLanguages {
-    static NSArray<XLLanguageInfo *> *languages = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        languages = @[
-            [XLLanguageInfo infoWithCode:XLLanguageEnglish name:@"English" nativeName:@"English" flag:@"🇬🇧" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageSpanish name:@"Spanish" nativeName:@"Español" flag:@"🇪🇸" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageFrench name:@"French" nativeName:@"Français" flag:@"🇫🇷" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageGerman name:@"German" nativeName:@"Deutsch" flag:@"🇩🇪" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageItalian name:@"Italian" nativeName:@"Italiano" flag:@"🇮🇹" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguagePortuguese name:@"Portuguese" nativeName:@"Português" flag:@"🇵🇹" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageRussian name:@"Russian" nativeName:@"Русский" flag:@"🇷🇺" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageGreek name:@"Greek" nativeName:@"Ελληνικά" flag:@"🇬🇷" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageDutch name:@"Dutch" nativeName:@"Nederlands" flag:@"🇳🇱" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguagePolish name:@"Polish" nativeName:@"Polski" flag:@"🇵🇱" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageTurkish name:@"Turkish" nativeName:@"Türkçe" flag:@"🇹🇷" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageSwedish name:@"Swedish" nativeName:@"Svenska" flag:@"🇸🇪" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageDanish name:@"Danish" nativeName:@"Dansk" flag:@"🇩🇰" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageFinnish name:@"Finnish" nativeName:@"Suomi" flag:@"🇫🇮" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageNorwegian name:@"Norwegian" nativeName:@"Norsk" flag:@"🇳🇴" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageCzech name:@"Czech" nativeName:@"Čeština" flag:@"🇨🇿" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageHungarian name:@"Hungarian" nativeName:@"Magyar" flag:@"🇭🇺" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageRomanian name:@"Romanian" nativeName:@"Română" flag:@"🇷🇴" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageUkrainian name:@"Ukrainian" nativeName:@"Українська" flag:@"🇺🇦" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageJapanese name:@"Japanese" nativeName:@"日本語" flag:@"🇯🇵" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageChinese name:@"Chinese" nativeName:@"中文" flag:@"🇨🇳" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageKorean name:@"Korean" nativeName:@"한국어" flag:@"🇰🇷" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageArabic name:@"Arabic" nativeName:@"العربية" flag:@"🇵🇸" rtl:YES],
-            [XLLanguageInfo infoWithCode:XLLanguageHebrew name:@"Hebrew" nativeName:@"עברית" flag:@"🇮🇱" rtl:YES],
-            [XLLanguageInfo infoWithCode:XLLanguageHindi name:@"Hindi" nativeName:@"हिन्दी" flag:@"🇮🇳" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageThai name:@"Thai" nativeName:@"ไทย" flag:@"🇹🇭" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageVietnamese name:@"Vietnamese" nativeName:@"Tiếng Việt" flag:@"🇻🇳" rtl:NO],
-            [XLLanguageInfo infoWithCode:XLLanguageIndonesian name:@"Indonesian" nativeName:@"Bahasa Indonesia" flag:@"🇮🇩" rtl:NO]
-        ];
-    });
++ (NSArray *)supportedLanguages {
+    static NSArray *languages = nil;
+    if (languages == nil) {
+        NSMutableArray *langs = [[NSMutableArray alloc] init];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageEnglish name:@"English" nativeName:@"English" flag:@"🇬🇧" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageSpanish name:@"Spanish" nativeName:@"Español" flag:@"🇪🇸" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageFrench name:@"French" nativeName:@"Français" flag:@"🇫🇷" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageGerman name:@"German" nativeName:@"Deutsch" flag:@"🇩🇪" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageItalian name:@"Italian" nativeName:@"Italiano" flag:@"🇮🇹" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguagePortuguese name:@"Portuguese" nativeName:@"Português" flag:@"🇵🇹" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageRussian name:@"Russian" nativeName:@"Русский" flag:@"🇷🇺" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageGreek name:@"Greek" nativeName:@"Ελληνικά" flag:@"🇬🇷" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageDutch name:@"Dutch" nativeName:@"Nederlands" flag:@"🇳🇱" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguagePolish name:@"Polish" nativeName:@"Polski" flag:@"🇵🇱" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageTurkish name:@"Turkish" nativeName:@"Türkçe" flag:@"🇹🇷" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageSwedish name:@"Swedish" nativeName:@"Svenska" flag:@"🇸🇪" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageDanish name:@"Danish" nativeName:@"Dansk" flag:@"🇩🇰" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageFinnish name:@"Finnish" nativeName:@"Suomi" flag:@"🇫🇮" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageNorwegian name:@"Norwegian" nativeName:@"Norsk" flag:@"🇳🇴" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageCzech name:@"Czech" nativeName:@"Čeština" flag:@"🇨🇿" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageHungarian name:@"Hungarian" nativeName:@"Magyar" flag:@"🇭🇺" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageRomanian name:@"Romanian" nativeName:@"Română" flag:@"🇷🇴" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageUkrainian name:@"Ukrainian" nativeName:@"Українська" flag:@"🇺🇦" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageJapanese name:@"Japanese" nativeName:@"日本語" flag:@"🇯🇵" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageChinese name:@"Chinese" nativeName:@"中文" flag:@"🇨🇳" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageKorean name:@"Korean" nativeName:@"한국어" flag:@"🇰🇷" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageArabic name:@"Arabic" nativeName:@"العربية" flag:@"🇵🇸" rtl:YES]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageHebrew name:@"Hebrew" nativeName:@"עברית" flag:@"🇮🇱" rtl:YES]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageHindi name:@"Hindi" nativeName:@"हिन्दी" flag:@"🇮🇳" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageThai name:@"Thai" nativeName:@"ไทย" flag:@"🇹🇭" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageVietnamese name:@"Vietnamese" nativeName:@"Tiếng Việt" flag:@"🇻🇳" rtl:NO]];
+        [langs addObject:[XLLanguageInfo infoWithCode:XLLanguageIndonesian name:@"Indonesian" nativeName:@"Bahasa Indonesia" flag:@"🇮🇩" rtl:NO]];
+        languages = [langs copy];
+    }
     return languages;
 }
 
-+ (nullable XLLanguageInfo *)infoForCode:(XLLanguage)code {
++ (XLLanguageInfo *)infoForCode:(XLLanguage)code {
     NSArray<XLLanguageInfo *> *languages = [self supportedLanguages];
     for (XLLanguageInfo *info in languages) {
         if (info.code == code) {
@@ -72,7 +71,7 @@
 }
 
 + (NSString *)codeStringForLanguage:(XLLanguage)language {
-    NSArray<NSString *> *codes = @[
+    NSArray *codes = @[
         @"en", @"el", @"es", @"fr", @"de", @"it", @"pt", @"ru", @"ja", @"zh",
         @"ko", @"ar", @"nl", @"pl", @"tr", @"sv", @"da", @"fi", @"no", @"cs",
         @"hu", @"ro", @"uk", @"he", @"hi", @"th", @"vi", @"id"
@@ -84,37 +83,37 @@
 }
 
 + (XLLanguage)languageForCodeString:(NSString *)codeString {
-    NSDictionary<NSString *, NSNumber *> *codeMap = @{
-        @"en": @(XLLanguageEnglish),
-        @"el": @(XLLanguageGreek),
-        @"es": @(XLLanguageSpanish),
-        @"fr": @(XLLanguageFrench),
-        @"de": @(XLLanguageGerman),
-        @"it": @(XLLanguageItalian),
-        @"pt": @(XLLanguagePortuguese),
-        @"ru": @(XLLanguageRussian),
-        @"ja": @(XLLanguageJapanese),
-        @"zh": @(XLLanguageChinese),
-        @"ko": @(XLLanguageKorean),
-        @"ar": @(XLLanguageArabic),
-        @"nl": @(XLLanguageDutch),
-        @"pl": @(XLLanguagePolish),
-        @"tr": @(XLLanguageTurkish),
-        @"sv": @(XLLanguageSwedish),
-        @"da": @(XLLanguageDanish),
-        @"fi": @(XLLanguageFinnish),
-        @"no": @(XLLanguageNorwegian),
-        @"cs": @(XLLanguageCzech),
-        @"hu": @(XLLanguageHungarian),
-        @"ro": @(XLLanguageRomanian),
-        @"uk": @(XLLanguageUkrainian),
-        @"he": @(XLLanguageHebrew),
-        @"hi": @(XLLanguageHindi),
-        @"th": @(XLLanguageThai),
-        @"vi": @(XLLanguageVietnamese),
-        @"id": @(XLLanguageIndonesian)
-    };
-    NSNumber *langNumber = codeMap[codeString.lowercaseString];
+    NSDictionary *codeMap = [NSDictionary dictionaryWithObjectsAndKeys:
+        [NSNumber numberWithInteger:XLLanguageEnglish], @"en",
+        [NSNumber numberWithInteger:XLLanguageGreek], @"el",
+        [NSNumber numberWithInteger:XLLanguageSpanish], @"es",
+        [NSNumber numberWithInteger:XLLanguageFrench], @"fr",
+        [NSNumber numberWithInteger:XLLanguageGerman], @"de",
+        [NSNumber numberWithInteger:XLLanguageItalian], @"it",
+        [NSNumber numberWithInteger:XLLanguagePortuguese], @"pt",
+        [NSNumber numberWithInteger:XLLanguageRussian], @"ru",
+        [NSNumber numberWithInteger:XLLanguageJapanese], @"ja",
+        [NSNumber numberWithInteger:XLLanguageChinese], @"zh",
+        [NSNumber numberWithInteger:XLLanguageKorean], @"ko",
+        [NSNumber numberWithInteger:XLLanguageArabic], @"ar",
+        [NSNumber numberWithInteger:XLLanguageDutch], @"nl",
+        [NSNumber numberWithInteger:XLLanguagePolish], @"pl",
+        [NSNumber numberWithInteger:XLLanguageTurkish], @"tr",
+        [NSNumber numberWithInteger:XLLanguageSwedish], @"sv",
+        [NSNumber numberWithInteger:XLLanguageDanish], @"da",
+        [NSNumber numberWithInteger:XLLanguageFinnish], @"fi",
+        [NSNumber numberWithInteger:XLLanguageNorwegian], @"no",
+        [NSNumber numberWithInteger:XLLanguageCzech], @"cs",
+        [NSNumber numberWithInteger:XLLanguageHungarian], @"hu",
+        [NSNumber numberWithInteger:XLLanguageRomanian], @"ro",
+        [NSNumber numberWithInteger:XLLanguageUkrainian], @"uk",
+        [NSNumber numberWithInteger:XLLanguageHebrew], @"he",
+        [NSNumber numberWithInteger:XLLanguageHindi], @"hi",
+        [NSNumber numberWithInteger:XLLanguageThai], @"th",
+        [NSNumber numberWithInteger:XLLanguageVietnamese], @"vi",
+        [NSNumber numberWithInteger:XLLanguageIndonesian], @"id",
+        nil];
+    NSNumber *langNumber = [codeMap objectForKey:[codeString lowercaseString]];
     return langNumber ? langNumber.integerValue : XLLanguageEnglish;
 }
 

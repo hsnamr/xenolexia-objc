@@ -9,10 +9,9 @@
 
 + (instancetype)sharedService {
     static XLBookParserService *sharedService = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
+    if (sharedService == nil) {
         sharedService = [[self alloc] init];
-    });
+    }
     return sharedService;
 }
 
@@ -20,9 +19,11 @@
           withCompletion:(void(^)(XLParsedBook * _Nullable parsedBook, NSError * _Nullable error))completion {
     if (!filePath || filePath.length == 0) {
         if (completion) {
+            NSDictionary *userInfo = [NSDictionary dictionaryWithObject:@"File path is empty"
+                                                                  forKey:NSLocalizedDescriptionKey];
             completion(nil, [NSError errorWithDomain:@"XLBookParserService"
                                                 code:1
-                                            userInfo:@{NSLocalizedDescriptionKey: @"File path is empty"}]);
+                                            userInfo:userInfo]);
         }
         return;
     }
@@ -30,9 +31,11 @@
     NSFileManager *fileManager = [NSFileManager defaultManager];
     if (![fileManager fileExistsAtPath:filePath]) {
         if (completion) {
+            NSDictionary *userInfo = [NSDictionary dictionaryWithObject:@"File does not exist"
+                                                                  forKey:NSLocalizedDescriptionKey];
             completion(nil, [NSError errorWithDomain:@"XLBookParserService"
                                                 code:2
-                                            userInfo:@{NSLocalizedDescriptionKey: @"File does not exist"}]);
+                                            userInfo:userInfo]);
         }
         return;
     }
@@ -69,9 +72,11 @@
         
         if (chapterIndex < 0 || chapterIndex >= parsedBook.chapters.count) {
             if (completion) {
+                NSDictionary *userInfo = [NSDictionary dictionaryWithObject:@"Chapter index out of range"
+                                                                      forKey:NSLocalizedDescriptionKey];
                 completion(nil, [NSError errorWithDomain:@"XLBookParserService"
                                                     code:4
-                                                userInfo:@{NSLocalizedDescriptionKey: @"Chapter index out of range"}]);
+                                                userInfo:userInfo]);
             }
             return;
         }
@@ -151,7 +156,7 @@
     NSInteger wordCount = 0;
     for (NSInteger i = 0; i < paragraphs.count; i++) {
         NSString *paragraph = paragraphs[i];
-        if (paragraph.length > 0) {
+        if ([paragraph length] > 0) {
             XLChapter *chapter = [[XLChapter alloc] init];
             chapter.chapterId = [[NSUUID UUID] UUIDString];
             chapter.title = [NSString stringWithFormat:@"Chapter %ld", (long)(i + 1)];
@@ -159,9 +164,10 @@
             chapter.content = paragraph;
             
             // Count words (simple whitespace split)
-            NSArray<NSString *> *words = [paragraph componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            words = [words filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"length > 0"]];
-            chapter.wordCount = words.count;
+            NSArray *words = [paragraph componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            NSPredicate *predicate = [NSPredicate predicateWithFormat:@"length > 0"];
+            words = [words filteredArrayUsingPredicate:predicate];
+            chapter.wordCount = [words count];
             wordCount += chapter.wordCount;
             
             [chapters addObject:chapter];
@@ -171,7 +177,7 @@
     XLParsedBook *parsedBook = [[XLParsedBook alloc] init];
     parsedBook.metadata = metadata;
     parsedBook.chapters = chapters;
-    parsedBook.tableOfContents = @[];
+    parsedBook.tableOfContents = [[NSArray alloc] init];
     parsedBook.totalWordCount = wordCount;
     
     if (completion) {

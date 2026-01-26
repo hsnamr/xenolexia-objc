@@ -42,8 +42,8 @@ typedef NS_ENUM(NSInteger, XLVocabularyStatus) {
 @property (nonatomic) XLProficiencyLevel proficiencyLevel;
 @property (nonatomic) NSInteger frequencyRank;
 @property (nonatomic) XLPartOfSpeech partOfSpeech;
-@property (nonatomic, strong) NSArray<NSString *> *variants; // Alternative forms (plurals, conjugations)
-@property (nonatomic, nullable, copy) NSString *pronunciation; // IPA or transliteration
+@property (nonatomic, retain) NSArray *variants; // Alternative forms (plurals, conjugations)
+@property (nonatomic, copy) NSString *pronunciation; // IPA or transliteration
 
 + (instancetype)entryWithSourceWord:(NSString *)sourceWord
                           targetWord:(NSString *)targetWord
@@ -60,11 +60,11 @@ typedef NS_ENUM(NSInteger, XLVocabularyStatus) {
 @property (nonatomic, copy) NSString *targetWord;
 @property (nonatomic) XLLanguage sourceLanguage;
 @property (nonatomic) XLLanguage targetLanguage;
-@property (nonatomic, nullable, copy) NSString *contextSentence;
-@property (nonatomic, nullable, copy) NSString *bookId;
-@property (nonatomic, nullable, copy) NSString *bookTitle;
-@property (nonatomic, strong) NSDate *addedAt;
-@property (nonatomic, nullable, strong) NSDate *lastReviewedAt;
+@property (nonatomic, copy) NSString *contextSentence;
+@property (nonatomic, copy) NSString *bookId;
+@property (nonatomic, copy) NSString *bookTitle;
+@property (nonatomic, retain) NSDate *addedAt;
+@property (nonatomic, retain) NSDate *lastReviewedAt;
 @property (nonatomic) NSInteger reviewCount;
 @property (nonatomic) double easeFactor; // SM-2 algorithm
 @property (nonatomic) NSInteger interval; // Days until next review

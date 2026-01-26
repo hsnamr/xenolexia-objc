@@ -27,9 +27,11 @@
     
     if (!content) {
         if (completion) {
+            NSDictionary *userInfo = [NSDictionary dictionaryWithObject:@"Failed to generate export content"
+                                                                  forKey:NSLocalizedDescriptionKey];
             completion(NO, [NSError errorWithDomain:@"XLExportService"
                                                code:1
-                                           userInfo:@{NSLocalizedDescriptionKey: @"Failed to generate export content"}]);
+                                           userInfo:userInfo]);
         }
         return;
     }
@@ -43,8 +45,8 @@
     }
 }
 
-- (NSString *)exportToCSV:(NSArray<XLVocabularyItem *> *)items {
-    NSMutableString *csv = [NSMutableString string];
+- (NSString *)exportToCSV:(NSArray *)items {
+    NSMutableString *csv = [[NSMutableString alloc] init];
     
     // Header
     [csv appendString:@"Source Word,Target Word,Context Sentence,Book Title,Added At,Review Count,Status\n"];
@@ -75,29 +77,29 @@
     NSMutableArray<NSDictionary *> *jsonArray = [NSMutableArray array];
     
     for (XLVocabularyItem *item in items) {
-        NSMutableDictionary *dict = [NSMutableDictionary dictionary];
-        dict[@"id"] = item.vocabularyId;
-        dict[@"sourceWord"] = item.sourceWord;
-        dict[@"targetWord"] = item.targetWord;
-        dict[@"sourceLanguage"] = @(item.sourceLanguage);
-        dict[@"targetLanguage"] = @(item.targetLanguage);
+        NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+        [dict setObject:item.vocabularyId forKey:@"id"];
+        [dict setObject:item.sourceWord forKey:@"sourceWord"];
+        [dict setObject:item.targetWord forKey:@"targetWord"];
+        [dict setObject:[NSNumber numberWithInteger:item.sourceLanguage] forKey:@"sourceLanguage"];
+        [dict setObject:[NSNumber numberWithInteger:item.targetLanguage] forKey:@"targetLanguage"];
         if (item.contextSentence) {
-            dict[@"contextSentence"] = item.contextSentence;
+            [dict setObject:item.contextSentence forKey:@"contextSentence"];
         }
         if (item.bookId) {
-            dict[@"bookId"] = item.bookId;
+            [dict setObject:item.bookId forKey:@"bookId"];
         }
         if (item.bookTitle) {
-            dict[@"bookTitle"] = item.bookTitle;
+            [dict setObject:item.bookTitle forKey:@"bookTitle"];
         }
-        dict[@"addedAt"] = @([item.addedAt timeIntervalSince1970]);
+        [dict setObject:[NSNumber numberWithDouble:[item.addedAt timeIntervalSince1970]] forKey:@"addedAt"];
         if (item.lastReviewedAt) {
-            dict[@"lastReviewedAt"] = @([item.lastReviewedAt timeIntervalSince1970]);
+            [dict setObject:[NSNumber numberWithDouble:[item.lastReviewedAt timeIntervalSince1970]] forKey:@"lastReviewedAt"];
         }
-        dict[@"reviewCount"] = @(item.reviewCount);
-        dict[@"easeFactor"] = @(item.easeFactor);
-        dict[@"interval"] = @(item.interval);
-        dict[@"status"] = @(item.status);
+        [dict setObject:[NSNumber numberWithInteger:item.reviewCount] forKey:@"reviewCount"];
+        [dict setObject:[NSNumber numberWithDouble:item.easeFactor] forKey:@"easeFactor"];
+        [dict setObject:[NSNumber numberWithInteger:item.interval] forKey:@"interval"];
+        [dict setObject:[NSNumber numberWithInteger:item.status] forKey:@"status"];
         
         [jsonArray addObject:dict];
     }
@@ -113,11 +115,13 @@
     return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
 }
 
-- (NSString *)exportToAnki:(NSArray<XLVocabularyItem *> *)items {
-    NSMutableString *tsv = [NSMutableString string];
+- (NSString *)exportToAnki:(NSArray *)items {
+    NSMutableString *tsv = [[NSMutableString alloc] init];
     
     // Anki format: Front\tBack\tTags
-    for (XLVocabularyItem *item in items) {
+    NSEnumerator *enumerator = [items objectEnumerator];
+    XLVocabularyItem *item;
+    while ((item = [enumerator nextObject])) {
         NSString *front = item.sourceWord;
         NSString *back = item.targetWord;
         if (item.contextSentence) {

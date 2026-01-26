@@ -63,17 +63,17 @@ typedef NS_ENUM(NSInteger, XLCEFRLevel) {
 @property (nonatomic, readonly) XLLanguage code;
 @property (nonatomic, readonly, copy) NSString *name;
 @property (nonatomic, readonly, copy) NSString *nativeName;
-@property (nonatomic, readonly, nullable, copy) NSString *flag; // Emoji flag
+@property (nonatomic, readonly, copy) NSString *flag; // Emoji flag
 @property (nonatomic, readonly) BOOL rtl; // Right-to-left language
 
 + (instancetype)infoWithCode:(XLLanguage)code
                         name:(NSString *)name
                   nativeName:(NSString *)nativeName
-                       flag:(nullable NSString *)flag
+                       flag:(NSString *)flag
                          rtl:(BOOL)rtl;
 
-+ (NSArray<XLLanguageInfo *> *)supportedLanguages;
-+ (nullable XLLanguageInfo *)infoForCode:(XLLanguage)code;
++ (NSArray *)supportedLanguages;
++ (XLLanguageInfo *)infoForCode:(XLLanguage)code;
 + (NSString *)codeStringForLanguage:(XLLanguage)language;
 + (XLLanguage)languageForCodeString:(NSString *)codeString;
 

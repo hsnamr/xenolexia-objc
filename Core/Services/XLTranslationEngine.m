@@ -19,7 +19,7 @@
     self = [super init];
     if (self) {
         _options = options;
-        _wordCache = [NSMutableDictionary dictionary];
+        _wordCache = [[NSMutableDictionary alloc] init];
     }
     return self;
 }
@@ -39,8 +39,8 @@
         processedChapter.content = chapter.content;
         processedChapter.wordCount = chapter.wordCount;
         processedChapter.href = chapter.href;
-        processedChapter.processedContent = processedContent ?: @"";
-        processedChapter.foreignWords = foreignWords ?: @[];
+        processedChapter.processedContent = processedContent ? processedContent : @"";
+        processedChapter.foreignWords = foreignWords ? foreignWords : [[NSArray alloc] init];
         
         if (completion) {
             completion(processedChapter, nil);
@@ -64,7 +64,9 @@
     dispatch_group_t group = dispatch_group_create();
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     
-    for (NSString *word in wordsToReplace) {
+    NSEnumerator *wordEnumerator = [wordsToReplace objectEnumerator];
+    NSString *word;
+    while ((word = [wordEnumerator nextObject])) {
         dispatch_group_enter(group);
         
         [self getTranslationForWord:word completion:^(XLWordEntry * _Nullable entry, NSError * _Nullable error) {
@@ -110,7 +112,7 @@
     NSMutableArray<NSString *> *words = [NSMutableArray array];
     for (NSString *component in components) {
         NSString *trimmed = [component stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-        if (trimmed.length > 0 && trimmed.length >= 2 && trimmed.length <= 25) {
+        if ([trimmed length] > 0 && [trimmed length] >= 2 && [trimmed length] <= 25) {
             [words addObject:[trimmed lowercaseString]];
         }
     }
@@ -118,7 +120,7 @@
     return words;
 }
 
-- (NSArray<NSString *> *)selectWordsToReplace:(NSArray<NSString *> *)words {
+- (NSArray *)selectWordsToReplace:(NSArray *)words {
     // Filter by frequency rank based on proficiency level
     NSInteger minRank, maxRank;
     switch (self.options.proficiencyLevel) {
@@ -137,7 +139,7 @@
     }
     
     // Select words based on density
-    NSInteger targetCount = (NSInteger)(words.count * self.options.wordDensity);
+    NSInteger targetCount = (NSInteger)([words count] * self.options.wordDensity);
     NSMutableArray<NSString *> *selected = [NSMutableArray array];
     
     // Simple selection: take first N words that meet criteria
@@ -145,7 +147,9 @@
         if (selected.count >= targetCount) break;
         
         // Skip excluded words
-        if ([self.options.excludeWords containsObject:word]) continue;
+        if ([self.options.excludeWords containsObject:word]) {
+            continue;
+        }
         
         // For now, accept all words (frequency filtering would require a database)
         [selected addObject:word];
@@ -155,14 +159,14 @@
 }
 
 - (void)getTranslationForWord:(NSString *)word
-                    completion:(void(^)(XLWordEntry * _Nullable entry, NSError * _Nullable error))completion {
+                    completion:(void(^)(XLWordEntry *entry, NSError *error))completion {
     // Check cache first
     NSString *cacheKey = [NSString stringWithFormat:@"%@_%ld_%ld",
                          word,
                          (long)self.options.languagePair.sourceLanguage,
                          (long)self.options.languagePair.targetLanguage];
     
-    XLWordEntry *cached = self.wordCache[cacheKey];
+    XLWordEntry *cached = [self.wordCache objectForKey:cacheKey];
     if (cached) {
         if (completion) completion(cached, nil);
         return;
@@ -204,7 +208,7 @@
     options.languagePair = languagePair;
     options.proficiencyLevel = proficiencyLevel;
     options.wordDensity = wordDensity;
-    options.excludeWords = @[];
+        options.excludeWords = [[NSArray alloc] init];
     return options;
 }
 

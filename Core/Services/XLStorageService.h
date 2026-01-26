@@ -14,17 +14,17 @@ NS_ASSUME_NONNULL_BEGIN
 @protocol XLStorageService <NSObject>
 
 // Book operations
-- (void)saveBook:(XLBook *)book withCompletion:(void(^)(BOOL success, NSError * _Nullable error))completion;
-- (void)getBookWithId:(NSString *)bookId withCompletion:(void(^)(XLBook * _Nullable book, NSError * _Nullable error))completion;
-- (void)getAllBooksWithCompletion:(void(^)(NSArray<XLBook *> * _Nullable books, NSError * _Nullable error))completion;
-- (void)deleteBookWithId:(NSString *)bookId withCompletion:(void(^)(BOOL success, NSError * _Nullable error))completion;
+- (void)saveBook:(XLBook *)book withCompletion:(void(^)(BOOL success, NSError *error))completion;
+- (void)getBookWithId:(NSString *)bookId withCompletion:(void(^)(XLBook *book, NSError *error))completion;
+- (void)getAllBooksWithCompletion:(void(^)(NSArray *books, NSError *error))completion;
+- (void)deleteBookWithId:(NSString *)bookId withCompletion:(void(^)(BOOL success, NSError *error))completion;
 
 // Vocabulary operations
-- (void)saveVocabularyItem:(XLVocabularyItem *)item withCompletion:(void(^)(BOOL success, NSError * _Nullable error))completion;
-- (void)getVocabularyItemWithId:(NSString *)itemId withCompletion:(void(^)(XLVocabularyItem * _Nullable item, NSError * _Nullable error))completion;
-- (void)getAllVocabularyItemsWithCompletion:(void(^)(NSArray<XLVocabularyItem *> * _Nullable items, NSError * _Nullable error))completion;
-- (void)deleteVocabularyItemWithId:(NSString *)itemId withCompletion:(void(^)(BOOL success, NSError * _Nullable error))completion;
-- (void)searchVocabularyWithQuery:(NSString *)query withCompletion:(void(^)(NSArray<XLVocabularyItem *> * _Nullable items, NSError * _Nullable error))completion;
+- (void)saveVocabularyItem:(XLVocabularyItem *)item withCompletion:(void(^)(BOOL success, NSError *error))completion;
+- (void)getVocabularyItemWithId:(NSString *)itemId withCompletion:(void(^)(XLVocabularyItem *item, NSError *error))completion;
+- (void)getAllVocabularyItemsWithCompletion:(void(^)(NSArray *items, NSError *error))completion;
+- (void)deleteVocabularyItemWithId:(NSString *)itemId withCompletion:(void(^)(BOOL success, NSError *error))completion;
+- (void)searchVocabularyWithQuery:(NSString *)query withCompletion:(void(^)(NSArray *items, NSError *error))completion;
 
 @end
 
@@ -34,7 +34,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedService;
 
 /// Initialize the database (creates tables if needed)
-- (void)initializeDatabaseWithCompletion:(void(^)(BOOL success, NSError * _Nullable error))completion;
+- (void)initializeDatabaseWithCompletion:(void(^)(BOOL success, NSError *error))completion;
 
 @end
 
