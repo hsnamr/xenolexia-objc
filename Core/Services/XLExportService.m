@@ -4,8 +4,22 @@
 //
 
 #import "XLExportService.h"
+#import "../../../SmallStep/SmallStep/Core/SSFileSystem.h"
+
+@interface XLExportService () {
+    SSFileSystem *_fileSystem;
+}
+@end
 
 @implementation XLExportService
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _fileSystem = [SSFileSystem sharedFileSystem];
+    }
+    return self;
+}
 
 - (void)exportVocabularyItems:(NSArray<XLVocabularyItem *> *)items
                         format:(XLExportFormat)format
@@ -38,7 +52,7 @@
     
     // Use SmallStep for cross-platform file writing
     NSError *error = nil;
-    BOOL success = [self.fileSystem writeString:content toPath:filePath error:&error];
+    BOOL success = [_fileSystem writeString:content toPath:filePath error:&error];
     
     if (completion) {
         completion(success, error);
