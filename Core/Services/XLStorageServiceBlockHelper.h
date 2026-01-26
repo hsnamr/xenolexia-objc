@@ -15,5 +15,7 @@
 @property (nonatomic, copy) void (^getAllBooksCompletion)(NSArray *books, NSError *error);
 @property (nonatomic, copy) void (^deleteBookCompletion)(BOOL success, NSError *error);
 @property (nonatomic, copy) void (^initDatabaseCompletion)(BOOL success, NSError *error);
+@property (nonatomic, copy) void (^saveVocabularyItemCompletion)(BOOL success, NSError *error);
+@property (nonatomic, copy) void (^getAllVocabularyItemsCompletion)(NSArray *items, NSError *error);
 
 @end

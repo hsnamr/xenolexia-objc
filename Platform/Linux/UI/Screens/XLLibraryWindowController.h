@@ -7,6 +7,7 @@
 #import <AppKit/AppKit.h>
 #import "../../../Core/Models/Book.h"
 #import "../../../Core/Services/XLStorageServiceDelegate.h"
+#import "../../../Core/Services/XLManager.h"
 
 @protocol XLLibraryWindowDelegate <NSObject>
 - (void)libraryDidSelectBook:(XLBook *)book;
@@ -17,7 +18,7 @@
 
 @class XLStorageService;
 
-@interface XLLibraryWindowController : NSWindowController <NSTableViewDataSource, NSTableViewDelegate, XLStorageServiceDelegate> {
+@interface XLLibraryWindowController : NSWindowController <NSTableViewDataSource, NSTableViewDelegate, XLStorageServiceDelegate, XLManagerDelegate> {
     id _delegate;
     NSArray *_books;
     NSArray *_filteredBooks;

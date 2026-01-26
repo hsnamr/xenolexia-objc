@@ -5,6 +5,7 @@
 
 #import "XLLibraryWindowController.h"
 #import "../../../../Core/Services/XLStorageService.h"
+#import "../../../../Core/Services/XLManager.h"
 
 
 @implementation XLLibraryWindowController
@@ -203,12 +204,9 @@
         [_statusLabel setStringValue:@"Importing book..."];
     }
     
-    // Note: XLManager uses blocks which GNUStep doesn't support
-    // For now, just show a message - full import functionality requires block support
-    if (_statusLabel) {
-        [_statusLabel setStringValue:@"Import functionality requires block support (not available in GNUStep)"];
-    }
-    NSLog(@"Import book at path: %@ (block-based API not supported in GNUStep)", filePath);
+    // Use delegate-based import (GNUStep compatible)
+    XLManager *manager = [XLManager sharedManager];
+    [manager importBookAtPath:filePath delegate:self];
 }
 
 - (void)tableViewDoubleClick:(id)sender {
@@ -352,6 +350,29 @@
 - (void)controlTextDidChange:(NSNotification *)notification {
     [self filterBooks];
     [self reloadData];
+}
+
+#pragma mark - XLManagerDelegate
+
+- (void)manager:(id)manager didImportBook:(XLBook *)book withError:(NSError *)error {
+    if (error) {
+        NSLog(@"Error importing book: %@", error);
+        if (_statusLabel) {
+            [_statusLabel setStringValue:[NSString stringWithFormat:@"Error: %@", [error localizedDescription]]];
+        }
+        
+        NSAlert *errorAlert = [[NSAlert alloc] init];
+        [errorAlert setMessageText:@"Error importing book"];
+        [errorAlert setInformativeText:[error localizedDescription]];
+        [errorAlert addButtonWithTitle:@"OK"];
+        [errorAlert runModal];
+    } else {
+        if (_statusLabel) {
+            [_statusLabel setStringValue:@"Book imported successfully"];
+        }
+        // Refresh the book list
+        [self refreshBooks];
+    }
 }
 
 @end

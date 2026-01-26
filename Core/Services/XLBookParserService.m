@@ -4,6 +4,7 @@
 //
 
 #import "XLBookParserService.h"
+#import "XLEpubParser.h"
 
 @implementation XLBookParserService
 
@@ -187,13 +188,12 @@
 
 - (void)parseEpubAtPath:(NSString *)filePath
          withCompletion:(void(^)(XLParsedBook * _Nullable parsedBook, NSError * _Nullable error))completion {
-    // EPUB parsing is complex and requires ZIP extraction and XML parsing
-    // For now, return an error indicating EPUB support needs to be implemented
-    // This can be extended with a library like ZipArchive or using Foundation's NSFileManager with ZIP support
+    // Use XLEpubParser to parse EPUB file
+    NSError *error = nil;
+    XLParsedBook *parsedBook = [XLEpubParser parseEpubAtPath:filePath error:&error];
+    
     if (completion) {
-        completion(nil, [NSError errorWithDomain:@"XLBookParserService"
-                                             code:5
-                                         userInfo:@{NSLocalizedDescriptionKey: @"EPUB parsing not yet implemented. Please use TXT format for now."}]);
+        completion(parsedBook, error);
     }
 }
 

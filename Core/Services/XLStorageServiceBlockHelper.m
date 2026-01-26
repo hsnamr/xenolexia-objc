@@ -5,6 +5,7 @@
 
 #import "XLStorageServiceBlockHelper.h"
 #import "../Models/Book.h"
+#import "../Models/Vocabulary.h"
 
 @implementation XLStorageServiceBlockHelper
 
@@ -35,6 +36,18 @@
 - (void)storageService:(id)service didInitializeDatabaseWithSuccess:(BOOL)success error:(NSError *)error {
     if (self.initDatabaseCompletion) {
         self.initDatabaseCompletion(success, error);
+    }
+}
+
+- (void)storageService:(id)service didSaveVocabularyItem:(XLVocabularyItem *)item withSuccess:(BOOL)success error:(NSError *)error {
+    if (self.saveVocabularyItemCompletion) {
+        self.saveVocabularyItemCompletion(success, error);
+    }
+}
+
+- (void)storageService:(id)service didGetAllVocabularyItems:(NSArray *)items withError:(NSError *)error {
+    if (self.getAllVocabularyItemsCompletion) {
+        self.getAllVocabularyItemsCompletion(items, error);
     }
 }
 

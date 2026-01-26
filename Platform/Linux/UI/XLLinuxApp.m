@@ -6,7 +6,10 @@
 #import "XLLinuxApp.h"
 #import "Screens/XLLibraryWindowController.h"
 #import "Screens/XLBookDetailWindowController.h"
+#import "Screens/XLReaderWindowController.h"
 #import "../../../Core/Services/XLStorageService.h"
+#import "../../../Core/Services/XLManager.h"
+#import "../../../Core/Models/Vocabulary.h"
 
 @implementation XLLinuxApp
 
@@ -23,6 +26,7 @@
     if (self) {
         _libraryController = nil;
         _bookDetailController = nil;
+        _readerController = nil;
     }
     return self;
 }
@@ -50,7 +54,7 @@
 #pragma mark - XLLibraryWindowDelegate
 
 - (void)libraryDidSelectBook:(XLBook *)book {
-    // Open reader (to be implemented)
+    [self openReaderForBook:book];
 }
 
 - (void)libraryDidRequestImport {
@@ -71,7 +75,24 @@
 #pragma mark - XLBookDetailWindowDelegate
 
 - (void)bookDetailDidRequestStartReading:(XLBook *)book {
-    // Open reader (to be implemented)
+    [self openReaderForBook:book];
+}
+
+- (void)openReaderForBook:(XLBook *)book {
+    if (!book) {
+        return;
+    }
+    
+    // Close existing reader if open
+    if (_readerController) {
+        [[_readerController window] close];
+        _readerController = nil;
+    }
+    
+    // Create and show reader
+    _readerController = [[XLReaderWindowController alloc] initWithBook:book];
+    [_readerController setDelegate:self];
+    [_readerController showWindow:nil];
 }
 
 - (void)bookDetailDidRequestDelete:(XLBook *)book {
@@ -93,8 +114,48 @@
     }
 }
 
+#pragma mark - XLManagerDelegate
+
+- (void)manager:(id)manager didSaveWordToVocabulary:(XLVocabularyItem *)item withSuccess:(BOOL)success error:(NSError *)error {
+    if (success) {
+        NSLog(@"Word saved to vocabulary: %@", item.sourceWord);
+    } else {
+        NSLog(@"Error saving word to vocabulary: %@", error);
+    }
+}
+
 - (void)bookDetailDidClose {
     _bookDetailController = nil;
+}
+
+#pragma mark - XLReaderWindowDelegate
+
+- (void)readerDidClose {
+    _readerController = nil;
+}
+
+- (void)readerDidRequestSaveWord:(XLForeignWordData *)wordData {
+    if (!wordData || !wordData.wordEntry) {
+        return;
+    }
+    
+    // Create vocabulary item from word data
+    XLVocabularyItem *item = [[XLVocabularyItem alloc] init];
+    item.itemId = [[NSUUID UUID] UUIDString];
+    item.sourceWord = wordData.originalWord;
+    item.targetWord = wordData.wordEntry.targetWord;
+    item.sourceLanguage = wordData.wordEntry.sourceLanguage;
+    item.targetLanguage = wordData.wordEntry.targetLanguage;
+    item.contextSentence = wordData.wordEntry.contextSentence;
+    item.bookId = _readerController ? [_readerController book].bookId : nil;
+    item.addedAt = [NSDate date];
+    item.status = XLVocabularyStatusNew;
+    
+    // Save to vocabulary
+    XLManager *manager = [XLManager sharedManager];
+    [manager saveWordToVocabulary:item delegate:self];
+    
+    [item release];
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)notification {
