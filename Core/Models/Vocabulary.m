@@ -28,16 +28,16 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _wordId = [[NSUUID UUID] UUIDString];
-        _sourceWord = @"";
-        _targetWord = @"";
-        _sourceLanguage = XLLanguageEnglish;
-        _targetLanguage = XLLanguageFrench;
-        _proficiencyLevel = XLProficiencyLevelBeginner;
-        _frequencyRank = 0;
-        _partOfSpeech = XLPartOfSpeechOther;
-        _variants = [[NSArray alloc] init];
-        _pronunciation = nil;
+        self.wordId = [[NSUUID UUID] UUIDString];
+        self.sourceWord = @"";
+        self.targetWord = @"";
+        self.sourceLanguage = XLLanguageEnglish;
+        self.targetLanguage = XLLanguageFrench;
+        self.proficiencyLevel = XLProficiencyLevelBeginner;
+        self.frequencyRank = 0;
+        self.partOfSpeech = XLPartOfSpeechOther;
+        self.variants = [[NSArray alloc] init];
+        self.pronunciation = nil;
     }
     return self;
 }
@@ -71,20 +71,20 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _vocabularyId = [[NSUUID UUID] UUIDString];
-        _sourceWord = @"";
-        _targetWord = @"";
-        _sourceLanguage = XLLanguageEnglish;
-        _targetLanguage = XLLanguageFrench;
-        _contextSentence = nil;
-        _bookId = nil;
-        _bookTitle = nil;
-        _addedAt = [NSDate date];
-        _lastReviewedAt = nil;
-        _reviewCount = 0;
-        _easeFactor = 2.5;
-        _interval = 0;
-        _status = XLVocabularyStatusNew;
+        self.vocabularyId = [[NSUUID UUID] UUIDString];
+        self.sourceWord = @"";
+        self.targetWord = @"";
+        self.sourceLanguage = XLLanguageEnglish;
+        self.targetLanguage = XLLanguageFrench;
+        self.contextSentence = nil;
+        self.bookId = nil;
+        self.bookTitle = nil;
+        self.addedAt = [NSDate date];
+        self.lastReviewedAt = nil;
+        self.reviewCount = 0;
+        self.easeFactor = 2.5;
+        self.interval = 0;
+        self.status = XLVocabularyStatusNew;
     }
     return self;
 }
@@ -92,20 +92,21 @@
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     self = [super init];
     if (self) {
-        _vocabularyId = [aDecoder decodeObjectForKey:@"vocabularyId"];
-        _sourceWord = [aDecoder decodeObjectForKey:@"sourceWord"];
-        _targetWord = [aDecoder decodeObjectForKey:@"targetWord"];
-        _sourceLanguage = [aDecoder decodeIntegerForKey:@"sourceLanguage"];
-        _targetLanguage = [aDecoder decodeIntegerForKey:@"targetLanguage"];
-        _contextSentence = [aDecoder decodeObjectForKey:@"contextSentence"];
-        _bookId = [aDecoder decodeObjectForKey:@"bookId"];
-        _bookTitle = [aDecoder decodeObjectForKey:@"bookTitle"];
-        _addedAt = [aDecoder decodeObjectForKey:@"addedAt"];
-        _lastReviewedAt = [aDecoder decodeObjectForKey:@"lastReviewedAt"];
-        _reviewCount = [aDecoder decodeIntegerForKey:@"reviewCount"];
-        _easeFactor = [[aDecoder decodeObjectForKey:@"easeFactor"] doubleValue];
-        _interval = [aDecoder decodeIntegerForKey:@"interval"];
-        _status = [aDecoder decodeIntegerForKey:@"status"];
+        self.vocabularyId = [aDecoder decodeObjectForKey:@"vocabularyId"];
+        self.sourceWord = [aDecoder decodeObjectForKey:@"sourceWord"];
+        self.targetWord = [aDecoder decodeObjectForKey:@"targetWord"];
+        self.sourceLanguage = [aDecoder decodeIntegerForKey:@"sourceLanguage"];
+        self.targetLanguage = [aDecoder decodeIntegerForKey:@"targetLanguage"];
+        self.contextSentence = [aDecoder decodeObjectForKey:@"contextSentence"];
+        self.bookId = [aDecoder decodeObjectForKey:@"bookId"];
+        self.bookTitle = [aDecoder decodeObjectForKey:@"bookTitle"];
+        self.addedAt = [aDecoder decodeObjectForKey:@"addedAt"];
+        self.lastReviewedAt = [aDecoder decodeObjectForKey:@"lastReviewedAt"];
+        self.reviewCount = [aDecoder decodeIntegerForKey:@"reviewCount"];
+        NSNumber *easeFactorNum = [aDecoder decodeObjectForKey:@"easeFactor"];
+        self.easeFactor = easeFactorNum ? [easeFactorNum doubleValue] : 2.5;
+        self.interval = [aDecoder decodeIntegerForKey:@"interval"];
+        self.status = [aDecoder decodeIntegerForKey:@"status"];
     }
     return self;
 }
@@ -122,7 +123,8 @@
     [aCoder encodeObject:self.addedAt forKey:@"addedAt"];
     [aCoder encodeObject:self.lastReviewedAt forKey:@"lastReviewedAt"];
     [aCoder encodeInteger:self.reviewCount forKey:@"reviewCount"];
-    [aCoder encodeObject:@(self.easeFactor) forKey:@"easeFactor"];
+    NSNumber *easeFactorNum = [NSNumber numberWithDouble:self.easeFactor];
+    [aCoder encodeObject:easeFactorNum forKey:@"easeFactor"];
     [aCoder encodeInteger:self.interval forKey:@"interval"];
     [aCoder encodeInteger:self.status forKey:@"status"];
 }

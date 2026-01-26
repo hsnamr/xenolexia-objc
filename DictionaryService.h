@@ -6,8 +6,8 @@
 #import <Foundation/Foundation.h>
 
 @interface DictionaryService : NSObject
-@property (strong,nonatomic) NSArray* arrayOfBooks;
-@property (strong,nonatomic) NSString* txtFileContents;
+@property (nonatomic, retain) NSArray* arrayOfBooks;
+@property (nonatomic, retain) NSString* txtFileContents;
 
 //- (void)serviceManager;
 - (NSDictionary*)loadDictionary;

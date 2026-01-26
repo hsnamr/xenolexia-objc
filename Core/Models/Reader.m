@@ -23,14 +23,14 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _theme = XLReaderThemeLight;
-        _fontFamily = @"System";
-        _fontSize = 16.0;
-        _lineHeight = 1.6;
-        _marginHorizontal = 24.0;
-        _marginVertical = 16.0;
-        _textAlign = XLTextAlignLeft;
-        _brightness = 1.0;
+        self.theme = XLReaderThemeLight;
+        self.fontFamily = @"System";
+        self.fontSize = 16.0;
+        self.lineHeight = 1.6;
+        self.marginHorizontal = 24.0;
+        self.marginVertical = 16.0;
+        self.textAlign = XLTextAlignLeft;
+        self.brightness = 1.0;
     }
     return self;
 }
@@ -38,14 +38,19 @@
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     self = [super init];
     if (self) {
-        _theme = [aDecoder decodeIntegerForKey:@"theme"];
-        _fontFamily = [aDecoder decodeObjectForKey:@"fontFamily"];
-        _fontSize = [[aDecoder decodeObjectForKey:@"fontSize"] doubleValue];
-        _lineHeight = [[aDecoder decodeObjectForKey:@"lineHeight"] doubleValue];
-        _marginHorizontal = [[aDecoder decodeObjectForKey:@"marginHorizontal"] doubleValue];
-        _marginVertical = [[aDecoder decodeObjectForKey:@"marginVertical"] doubleValue];
-        _textAlign = [aDecoder decodeIntegerForKey:@"textAlign"];
-        _brightness = [[aDecoder decodeObjectForKey:@"brightness"] doubleValue];
+        self.theme = [aDecoder decodeIntegerForKey:@"theme"];
+        self.fontFamily = [aDecoder decodeObjectForKey:@"fontFamily"];
+        NSNumber *fontSizeNum = [aDecoder decodeObjectForKey:@"fontSize"];
+        self.fontSize = fontSizeNum ? [fontSizeNum doubleValue] : 16.0;
+        NSNumber *lineHeightNum = [aDecoder decodeObjectForKey:@"lineHeight"];
+        self.lineHeight = lineHeightNum ? [lineHeightNum doubleValue] : 1.6;
+        NSNumber *marginHNum = [aDecoder decodeObjectForKey:@"marginHorizontal"];
+        self.marginHorizontal = marginHNum ? [marginHNum doubleValue] : 24.0;
+        NSNumber *marginVNum = [aDecoder decodeObjectForKey:@"marginVertical"];
+        self.marginVertical = marginVNum ? [marginVNum doubleValue] : 16.0;
+        self.textAlign = [aDecoder decodeIntegerForKey:@"textAlign"];
+        NSNumber *brightnessNum = [aDecoder decodeObjectForKey:@"brightness"];
+        self.brightness = brightnessNum ? [brightnessNum doubleValue] : 1.0;
     }
     return self;
 }
@@ -53,12 +58,17 @@
 - (void)encodeWithCoder:(NSCoder *)aCoder {
     [aCoder encodeInteger:self.theme forKey:@"theme"];
     [aCoder encodeObject:self.fontFamily forKey:@"fontFamily"];
-    [aCoder encodeObject:@(self.fontSize) forKey:@"fontSize"];
-    [aCoder encodeObject:@(self.lineHeight) forKey:@"lineHeight"];
-    [aCoder encodeObject:@(self.marginHorizontal) forKey:@"marginHorizontal"];
-    [aCoder encodeObject:@(self.marginVertical) forKey:@"marginVertical"];
+    NSNumber *fontSizeNum = [NSNumber numberWithDouble:self.fontSize];
+    [aCoder encodeObject:fontSizeNum forKey:@"fontSize"];
+    NSNumber *lineHeightNum = [NSNumber numberWithDouble:self.lineHeight];
+    [aCoder encodeObject:lineHeightNum forKey:@"lineHeight"];
+    NSNumber *marginHNum = [NSNumber numberWithDouble:self.marginHorizontal];
+    [aCoder encodeObject:marginHNum forKey:@"marginHorizontal"];
+    NSNumber *marginVNum = [NSNumber numberWithDouble:self.marginVertical];
+    [aCoder encodeObject:marginVNum forKey:@"marginVertical"];
     [aCoder encodeInteger:self.textAlign forKey:@"textAlign"];
-    [aCoder encodeObject:@(self.brightness) forKey:@"brightness"];
+    NSNumber *brightnessNum = [NSNumber numberWithDouble:self.brightness];
+    [aCoder encodeObject:brightnessNum forKey:@"brightness"];
 }
 
 @end
@@ -82,11 +92,11 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _originalWord = @"";
-        _foreignWord = @"";
-        _startIndex = 0;
-        _endIndex = 0;
-        _wordEntry = nil;
+        self.originalWord = @"";
+        self.foreignWord = @"";
+        self.startIndex = 0;
+        self.endIndex = 0;
+        self.wordEntry = nil;
     }
     return self;
 }
@@ -98,8 +108,8 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _foreignWords = [[NSArray alloc] init];
-        _processedContent = @"";
+        self.foreignWords = [[NSArray alloc] init];
+        self.processedContent = @"";
     }
     return self;
 }
@@ -124,14 +134,14 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _sessionId = [[NSUUID UUID] UUIDString];
-        _bookId = @"";
-        _startedAt = [NSDate date];
-        _endedAt = nil;
-        _pagesRead = 0;
-        _wordsRevealed = 0;
-        _wordsSaved = 0;
-        _duration = 0;
+        self.sessionId = [[NSUUID UUID] UUIDString];
+        self.bookId = @"";
+        self.startedAt = [NSDate date];
+        self.endedAt = nil;
+        self.pagesRead = 0;
+        self.wordsRevealed = 0;
+        self.wordsSaved = 0;
+        self.duration = 0;
     }
     return self;
 }
@@ -150,14 +160,14 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _totalBooksRead = 0;
-        _totalReadingTime = 0;
-        _totalWordsLearned = 0;
-        _currentStreak = 0;
-        _longestStreak = 0;
-        _averageSessionDuration = 0;
-        _wordsRevealedToday = 0;
-        _wordsSavedToday = 0;
+        self.totalBooksRead = 0;
+        self.totalReadingTime = 0;
+        self.totalWordsLearned = 0;
+        self.currentStreak = 0;
+        self.longestStreak = 0;
+        self.averageSessionDuration = 0;
+        self.wordsRevealedToday = 0;
+        self.wordsSavedToday = 0;
     }
     return self;
 }

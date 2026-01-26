@@ -30,13 +30,13 @@
     [self doSay:input ofLanguage:@"ja"];
 }
 
--(void)doTranslateArray:(NSArray*)keysArray withCompletion:(void(^)(NSArray *))completion {
+-(void)doTranslateArray:(NSArray*)keysArray withCompletion:(id)completion {
     //Must be called before used to MSTranslateVendor
     [[MSTranslateAccessTokenRequester sharedRequester] requestSynchronousAccessToken:CLIENT_ID clientSecret:CLIENT_SECRET];
     [self doTranslateArray:keysArray from:@"en" to:@"ja" withCompletion:completion];
 }
 
--(void)doTranslateArray:(NSArray*)keysArray from:(NSString*)lang1 to:(NSString*)lang2 withCompletion:(void(^)(NSArray *))completion {
+-(void)doTranslateArray:(NSArray*)keysArray from:(NSString*)lang1 to:(NSString*)lang2 withCompletion:(id)completion {
     MSTranslateVendor *vendor = [[MSTranslateVendor alloc] init];
     
     [vendor requestTranslateArray:keysArray from: lang1 to:lang2 blockWithSuccess:^(NSArray *translatedTextArray) {
@@ -54,7 +54,7 @@
     [self doTranslateWord:input from:@"ja" to:@"en" withCompletion:completion];
 }
 
--(void)doTranslateWord:(NSString*)input from:(NSString*)lang1 to:(NSString*)lang2 withCompletion:(void(^)(NSString *))completion {
+-(void)doTranslateWord:(NSString*)input from:(NSString*)lang1 to:(NSString*)lang2 withCompletion:(id)completion {
     MSTranslateVendor *vendor = [[MSTranslateVendor alloc] init];
     
     [vendor requestTranslate:input from:lang1 to:lang2 blockWithSuccess:^(NSString *translatedText) {

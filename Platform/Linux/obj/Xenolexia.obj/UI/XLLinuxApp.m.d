@@ -438,7 +438,11 @@ obj/Xenolexia.obj/UI/XLLinuxApp.m.o: UI/XLLinuxApp.m UI/XLLinuxApp.h \
  /usr/include/x86_64-linux-gnu/GNUstep/AppKit/PSOperators.h \
  /usr/include/x86_64-linux-gnu/GNUstep/AppKit/DPSOperators.h \
  UI/Screens/XLLibraryWindowController.h UI/../../../Core/Models/Book.h \
- UI/../../../Core/Models/Language.h
+ UI/../../../Core/Models/Language.h \
+ UI/../../../Core/Services/XLStorageServiceDelegate.h \
+ UI/../../../Core/Services/../Models/Vocabulary.h \
+ UI/Screens/XLBookDetailWindowController.h \
+ UI/../../../Core/Services/XLStorageService.h
 UI/XLLinuxApp.h:
 /usr/include/x86_64-linux-gnu/GNUstep/Foundation/Foundation.h:
 /usr/include/x86_64-linux-gnu/GNUstep/GNUstepBase/GSVersionMacros.h:
@@ -881,3 +885,7 @@ UI/XLLinuxApp.h:
 UI/Screens/XLLibraryWindowController.h:
 UI/../../../Core/Models/Book.h:
 UI/../../../Core/Models/Language.h:
+UI/../../../Core/Services/XLStorageServiceDelegate.h:
+UI/../../../Core/Services/../Models/Vocabulary.h:
+UI/Screens/XLBookDetailWindowController.h:
+UI/../../../Core/Services/XLStorageService.h:

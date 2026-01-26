@@ -108,8 +108,11 @@
     //NSLog(@"%i", sortedArray.count); //365
     
     // further remove words that are too similar
-    for (int i = 1; i < sortedArray.count; i++) {
-        if(!([sortedArray[i] rangeOfString:sortedArray[i-1]].location == NSNotFound))  {
+    int i;
+    for (i = 1; i < [sortedArray count]; i++) {
+        NSString *currentWord = [sortedArray objectAtIndex:i];
+        NSString *previousWord = [sortedArray objectAtIndex:i-1];
+        if(!([currentWord rangeOfString:previousWord].location == NSNotFound))  {
             // if this word is too similar to the word before it
             [sortedArray removeObjectAtIndex:i];
         }
@@ -118,8 +121,10 @@
     //NSLog(@"%i", sortedArray.count); // 317
     
     // one more run remove words that are too similar
-    for (int i = 1; i < sortedArray.count; i++) {
-        if(!([sortedArray[i] rangeOfString:sortedArray[i-1]].location == NSNotFound))  {
+    for (i = 1; i < [sortedArray count]; i++) {
+        NSString *currentWord = [sortedArray objectAtIndex:i];
+        NSString *previousWord = [sortedArray objectAtIndex:i-1];
+        if(!([currentWord rangeOfString:previousWord].location == NSNotFound))  {
             // if this word is too similar to the word before it
             [sortedArray removeObjectAtIndex:i];
         }
@@ -130,8 +135,10 @@
     // a final run to remove words that are too similar
     // it is okay to waste clock cycles here to find that last few words
     // it is cheap and Clang is fast at this
-    for (int i = 1; i < sortedArray.count; i++) {
-        if(!([sortedArray[i] rangeOfString:sortedArray[i-1]].location == NSNotFound))  {
+    for (i = 1; i < [sortedArray count]; i++) {
+        NSString *currentWord = [sortedArray objectAtIndex:i];
+        NSString *previousWord = [sortedArray objectAtIndex:i-1];
+        if(!([currentWord rangeOfString:previousWord].location == NSNotFound))  {
             // if this word is too similar to the word before it
             [sortedArray removeObjectAtIndex:i];
         }

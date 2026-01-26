@@ -6,15 +6,17 @@
 
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
+#import "Screens/XLLibraryWindowController.h"
+#import "Screens/XLBookDetailWindowController.h"
+#import "../../../Core/Services/XLStorageServiceDelegate.h"
 
-NS_ASSUME_NONNULL_BEGIN
-
-@interface XLLinuxApp : NSObject <NSApplicationDelegate>
+@interface XLLinuxApp : NSObject <NSApplicationDelegate, XLLibraryWindowDelegate, XLBookDetailWindowDelegate, XLStorageServiceDelegate> {
+    XLLibraryWindowController *_libraryController;
+    XLBookDetailWindowController *_bookDetailController;
+}
 
 + (instancetype)sharedApp;
 
 - (void)run;
 
 @end
-
-NS_ASSUME_NONNULL_END

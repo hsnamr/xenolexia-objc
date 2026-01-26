@@ -5,7 +5,11 @@
 
 #import <Foundation/Foundation.h>
 
-@interface DownloadService : NSObject
+@class SSFileSystem;
+
+@interface DownloadService : NSObject {
+    SSFileSystem *_fileSystem;
+}
 
 //@property (strong,nonatomic) NSString* documentsDirectory;
 //@property (strong,nonatomic) NSURL* fileURL;

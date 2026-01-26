@@ -18,25 +18,25 @@
                     author:(NSString *)author {
     self = [super init];
     if (self) {
-        _bookId = [bookId copy];
-        _title = [title copy];
-        _author = [author copy];
-        _format = XLBookFormatTxt;
-        _fileSize = 0;
-        _addedAt = [NSDate date];
-        _lastReadAt = nil;
-        _languagePair = [XLLanguagePair pairWithSource:XLLanguageEnglish target:XLLanguageFrench];
-        _proficiencyLevel = XLProficiencyLevelBeginner;
-        _wordDensity = 0.3;
-        _progress = 0.0;
-        _currentLocation = nil;
-        _currentChapter = 0;
-        _totalChapters = 0;
-        _currentPage = 0;
-        _totalPages = 0;
-        _readingTimeMinutes = 0;
-        _sourceUrl = nil;
-        _isDownloaded = NO;
+        self.bookId = bookId;
+        self.title = title;
+        self.author = author;
+        self.format = XLBookFormatTxt;
+        self.fileSize = 0;
+        self.addedAt = [NSDate date];
+        self.lastReadAt = nil;
+        self.languagePair = [XLLanguagePair pairWithSource:XLLanguageEnglish target:XLLanguageFrench];
+        self.proficiencyLevel = XLProficiencyLevelBeginner;
+        self.wordDensity = 0.3;
+        self.progress = 0.0;
+        self.currentLocation = nil;
+        self.currentChapter = 0;
+        self.totalChapters = 0;
+        self.currentPage = 0;
+        self.totalPages = 0;
+        self.readingTimeMinutes = 0;
+        self.sourceUrl = nil;
+        self.isDownloaded = NO;
     }
     return self;
 }
@@ -48,27 +48,30 @@
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     self = [super init];
     if (self) {
-        _bookId = [aDecoder decodeObjectForKey:@"bookId"];
-        _title = [aDecoder decodeObjectForKey:@"title"];
-        _author = [aDecoder decodeObjectForKey:@"author"];
-        _coverPath = [aDecoder decodeObjectForKey:@"coverPath"];
-        _filePath = [aDecoder decodeObjectForKey:@"filePath"];
-        _format = [aDecoder decodeIntegerForKey:@"format"];
-        _fileSize = [[aDecoder decodeObjectForKey:@"fileSize"] longLongValue];
-        _addedAt = [aDecoder decodeObjectForKey:@"addedAt"];
-        _lastReadAt = [aDecoder decodeObjectForKey:@"lastReadAt"];
-        _languagePair = [aDecoder decodeObjectForKey:@"languagePair"];
-        _proficiencyLevel = [aDecoder decodeIntegerForKey:@"proficiencyLevel"];
-        _wordDensity = [[aDecoder decodeObjectForKey:@"wordDensity"] doubleValue];
-        _progress = [[aDecoder decodeObjectForKey:@"progress"] doubleValue];
-        _currentLocation = [aDecoder decodeObjectForKey:@"currentLocation"];
-        _currentChapter = [aDecoder decodeIntegerForKey:@"currentChapter"];
-        _totalChapters = [aDecoder decodeIntegerForKey:@"totalChapters"];
-        _currentPage = [aDecoder decodeIntegerForKey:@"currentPage"];
-        _totalPages = [aDecoder decodeIntegerForKey:@"totalPages"];
-        _readingTimeMinutes = [aDecoder decodeIntegerForKey:@"readingTimeMinutes"];
-        _sourceUrl = [aDecoder decodeObjectForKey:@"sourceUrl"];
-        _isDownloaded = [aDecoder decodeBoolForKey:@"isDownloaded"];
+        self.bookId = [aDecoder decodeObjectForKey:@"bookId"];
+        self.title = [aDecoder decodeObjectForKey:@"title"];
+        self.author = [aDecoder decodeObjectForKey:@"author"];
+        self.coverPath = [aDecoder decodeObjectForKey:@"coverPath"];
+        self.filePath = [aDecoder decodeObjectForKey:@"filePath"];
+        self.format = [aDecoder decodeIntegerForKey:@"format"];
+        NSNumber *fileSizeNum = [aDecoder decodeObjectForKey:@"fileSize"];
+        self.fileSize = fileSizeNum ? [fileSizeNum longLongValue] : 0;
+        self.addedAt = [aDecoder decodeObjectForKey:@"addedAt"];
+        self.lastReadAt = [aDecoder decodeObjectForKey:@"lastReadAt"];
+        self.languagePair = [aDecoder decodeObjectForKey:@"languagePair"];
+        self.proficiencyLevel = [aDecoder decodeIntegerForKey:@"proficiencyLevel"];
+        NSNumber *wordDensityNum = [aDecoder decodeObjectForKey:@"wordDensity"];
+        self.wordDensity = wordDensityNum ? [wordDensityNum doubleValue] : 0.0;
+        NSNumber *progressNum = [aDecoder decodeObjectForKey:@"progress"];
+        self.progress = progressNum ? [progressNum doubleValue] : 0.0;
+        self.currentLocation = [aDecoder decodeObjectForKey:@"currentLocation"];
+        self.currentChapter = [aDecoder decodeIntegerForKey:@"currentChapter"];
+        self.totalChapters = [aDecoder decodeIntegerForKey:@"totalChapters"];
+        self.currentPage = [aDecoder decodeIntegerForKey:@"currentPage"];
+        self.totalPages = [aDecoder decodeIntegerForKey:@"totalPages"];
+        self.readingTimeMinutes = [aDecoder decodeIntegerForKey:@"readingTimeMinutes"];
+        self.sourceUrl = [aDecoder decodeObjectForKey:@"sourceUrl"];
+        self.isDownloaded = [aDecoder decodeBoolForKey:@"isDownloaded"];
     }
     return self;
 }
@@ -80,13 +83,16 @@
     [aCoder encodeObject:self.coverPath forKey:@"coverPath"];
     [aCoder encodeObject:self.filePath forKey:@"filePath"];
     [aCoder encodeInteger:self.format forKey:@"format"];
-    [aCoder encodeObject:@(self.fileSize) forKey:@"fileSize"];
+    NSNumber *fileSizeNum = [NSNumber numberWithLongLong:self.fileSize];
+    [aCoder encodeObject:fileSizeNum forKey:@"fileSize"];
     [aCoder encodeObject:self.addedAt forKey:@"addedAt"];
     [aCoder encodeObject:self.lastReadAt forKey:@"lastReadAt"];
     [aCoder encodeObject:self.languagePair forKey:@"languagePair"];
     [aCoder encodeInteger:self.proficiencyLevel forKey:@"proficiencyLevel"];
-    [aCoder encodeObject:@(self.wordDensity) forKey:@"wordDensity"];
-    [aCoder encodeObject:@(self.progress) forKey:@"progress"];
+    NSNumber *wordDensityNum = [NSNumber numberWithDouble:self.wordDensity];
+    [aCoder encodeObject:wordDensityNum forKey:@"wordDensity"];
+    NSNumber *progressNum = [NSNumber numberWithDouble:self.progress];
+    [aCoder encodeObject:progressNum forKey:@"progress"];
     [aCoder encodeObject:self.currentLocation forKey:@"currentLocation"];
     [aCoder encodeInteger:self.currentChapter forKey:@"currentChapter"];
     [aCoder encodeInteger:self.totalChapters forKey:@"totalChapters"];
@@ -104,15 +110,15 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _title = @"";
-        _author = nil;
-        _bookDescription = nil;
-        _coverUrl = nil;
-        _language = nil;
-        _publisher = nil;
-        _publishDate = nil;
-        _isbn = nil;
-        _subjects = [[NSArray alloc] init];
+        self.title = @"";
+        self.author = nil;
+        self.bookDescription = nil;
+        self.coverUrl = nil;
+        self.language = nil;
+        self.publisher = nil;
+        self.publishDate = nil;
+        self.isbn = nil;
+        self.subjects = [[NSArray alloc] init];
     }
     return self;
 }
@@ -138,12 +144,12 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _chapterId = [[NSUUID UUID] UUIDString];
-        _title = @"";
-        _index = 0;
-        _content = @"";
-        _wordCount = 0;
-        _href = nil;
+        self.chapterId = [[NSUUID UUID] UUIDString];
+        self.title = @"";
+        self.index = 0;
+        self.content = @"";
+        self.wordCount = 0;
+        self.href = nil;
     }
     return self;
 }
@@ -168,11 +174,11 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _itemId = [[NSUUID UUID] UUIDString];
-        _title = @"";
-        _href = @"";
-        _level = 0;
-        _children = nil;
+        self.itemId = [[NSUUID UUID] UUIDString];
+        self.title = @"";
+        self.href = @"";
+        self.level = 0;
+        self.children = nil;
     }
     return self;
 }
@@ -184,10 +190,10 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _metadata = [[XLBookMetadata alloc] init];
-        _chapters = [[NSArray alloc] init];
-        _tableOfContents = [[NSArray alloc] init];
-        _totalWordCount = 0;
+        self.metadata = [[XLBookMetadata alloc] init];
+        self.chapters = [[NSArray alloc] init];
+        self.tableOfContents = [[NSArray alloc] init];
+        self.totalWordCount = 0;
     }
     return self;
 }

@@ -61,8 +61,10 @@
 }
 
 + (XLLanguageInfo *)infoForCode:(XLLanguage)code {
-    NSArray<XLLanguageInfo *> *languages = [self supportedLanguages];
-    for (XLLanguageInfo *info in languages) {
+    NSArray *languages = [self supportedLanguages];
+    NSEnumerator *enumerator = [languages objectEnumerator];
+    XLLanguageInfo *info;
+    while ((info = [enumerator nextObject])) {
         if (info.code == code) {
             return info;
         }
@@ -71,13 +73,12 @@
 }
 
 + (NSString *)codeStringForLanguage:(XLLanguage)language {
-    NSArray *codes = @[
+    NSArray *codes = [NSArray arrayWithObjects:
         @"en", @"el", @"es", @"fr", @"de", @"it", @"pt", @"ru", @"ja", @"zh",
         @"ko", @"ar", @"nl", @"pl", @"tr", @"sv", @"da", @"fi", @"no", @"cs",
-        @"hu", @"ro", @"uk", @"he", @"hi", @"th", @"vi", @"id"
-    ];
-    if (language >= 0 && language < codes.count) {
-        return codes[language];
+        @"hu", @"ro", @"uk", @"he", @"hi", @"th", @"vi", @"id", nil];
+    if (language >= 0 && language < [codes count]) {
+        return [codes objectAtIndex:language];
     }
     return @"en";
 }
@@ -131,8 +132,8 @@
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     self = [super init];
     if (self) {
-        _sourceLanguage = [aDecoder decodeIntegerForKey:@"sourceLanguage"];
-        _targetLanguage = [aDecoder decodeIntegerForKey:@"targetLanguage"];
+        self.sourceLanguage = [aDecoder decodeIntegerForKey:@"sourceLanguage"];
+        self.targetLanguage = [aDecoder decodeIntegerForKey:@"targetLanguage"];
     }
     return self;
 }

@@ -58,7 +58,13 @@ typedef NS_ENUM(NSInteger, XLCEFRLevel) {
 };
 
 /// Language metadata for display
-@interface XLLanguageInfo : NSObject
+@interface XLLanguageInfo : NSObject {
+    XLLanguage _code;
+    NSString *_name;
+    NSString *_nativeName;
+    NSString *_flag;
+    BOOL _rtl;
+}
 
 @property (nonatomic, readonly) XLLanguage code;
 @property (nonatomic, readonly, copy) NSString *name;

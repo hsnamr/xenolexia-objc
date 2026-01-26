@@ -65,19 +65,24 @@ This document outlines the complete development roadmap for Xenolexia Objective-
 - [ ] Support for FB2, MOBI formats
 - [x] Store book files in app storage
 - [x] Create database schema for books
-- [ ] Import progress modal with status indicator
+- [x] SQLite database operations (save, get, delete, getAll with sorting)
+- [x] File size detection on import
+- [ ] Import progress modal with status indicator (blocked by GNUStep block support)
 
 #### 2.2 Library UI
 - [x] Basic Library window controller (Linux/GNUStep)
 - [x] Table view with book list
 - [x] Search functionality
 - [x] Import button
+- [x] Sort options (recent, title, author, progress) - implemented with menu
+- [x] Delete book functionality - implemented with confirmation dialog
+- [x] Book detail screen - implemented
 - [ ] Grid/List view toggle
-- [ ] Book cards with cover, title, progress
-- [ ] Sort options (recent, title, author, progress)
-- [ ] Delete/edit book functionality
-- [ ] Book detail screen
+- [ ] Book cards with cover, title, progress (currently using table view)
+- [ ] Edit book functionality
 - [ ] macOS/iOS/Windows UI implementations
+
+**Note**: Current implementation uses blocks for async callbacks, which GNUStep doesn't support. Need to refactor to use delegate pattern or synchronous methods for full GNUStep compatibility.
 
 **Technical Details:**
 ```objc
