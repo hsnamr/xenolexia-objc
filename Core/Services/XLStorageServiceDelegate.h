@@ -24,6 +24,8 @@
 - (void)storageService:(id)service didGetAllVocabularyItems:(NSArray *)items withError:(NSError *)error;
 - (void)storageService:(id)service didDeleteVocabularyItemWithId:(NSString *)itemId withSuccess:(BOOL)success error:(NSError *)error;
 - (void)storageService:(id)service didSearchVocabulary:(NSArray *)items withError:(NSError *)error;
+- (void)storageService:(id)service didGetVocabularyDueForReview:(NSArray *)items withError:(NSError *)error;
+- (void)storageService:(id)service didRecordReviewForItemId:(NSString *)itemId withSuccess:(BOOL)success error:(NSError *)error;
 
 // Database initialization callback
 - (void)storageService:(id)service didInitializeDatabaseWithSuccess:(BOOL)success error:(NSError *)error;

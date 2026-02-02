@@ -75,6 +75,10 @@ typedef NS_ENUM(NSInteger, XLVocabularyStatus) {
                      sourceLanguage:(XLLanguage)sourceLanguage
                      targetLanguage:(XLLanguage)targetLanguage;
 
+/// Spec status strings: new, learning, review, learned (Xenolexia Core Spec)
++ (NSString *)codeStringForStatus:(XLVocabularyStatus)status;
++ (XLVocabularyStatus)statusForCodeString:(NSString *)codeString;
+
 @end
 
 NS_ASSUME_NONNULL_END

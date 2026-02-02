@@ -5,7 +5,10 @@
 
 #import "XLStorageService.h"
 #import "XLStorageServiceDelegate.h"
+#import "../Models/Language.h"
+#import "../Models/Vocabulary.h"
 #import "../../../SmallStep/SmallStep/Core/SSFileSystem.h"
+#include "sm2.h"
 
 // SQLite3 declarations (minimal interface for GNUStep compatibility)
 // Note: Install libsqlite3-dev package for full sqlite3.h header
@@ -40,6 +43,9 @@ void sqlite3_free(void *p);
 @interface XLStorageService ()
 
 - (XLBook *)bookFromStatement:(sqlite3_stmt *)stmt;
+- (XLVocabularyItem *)vocabularyItemFromStatement:(sqlite3_stmt *)stmt;
+- (NSString *)formatStringForBookFormat:(XLBookFormat)format;
+- (XLBookFormat)bookFormatForString:(NSString *)s;
 
 @end
 
@@ -80,22 +86,22 @@ void sqlite3_free(void *p);
         return;
     }
     
-    // Create tables
+    // Create tables (Xenolexia Core Spec 02-sql-schema: snake_case, TEXT for lang/status, INTEGER ms timestamps)
     NSString *createBooksTable = @"CREATE TABLE IF NOT EXISTS books ("
                                  "id TEXT PRIMARY KEY, "
                                  "title TEXT NOT NULL, "
                                  "author TEXT, "
                                  "cover_path TEXT, "
                                  "file_path TEXT NOT NULL, "
-                                 "format INTEGER, "
+                                 "format TEXT NOT NULL, "
                                  "file_size INTEGER, "
                                  "added_at INTEGER NOT NULL, "
                                  "last_read_at INTEGER, "
-                                 "source_language INTEGER, "
-                                 "target_language INTEGER, "
-                                 "proficiency_level INTEGER, "
-                                 "word_density REAL, "
-                                 "progress REAL, "
+                                 "source_lang TEXT NOT NULL, "
+                                 "target_lang TEXT NOT NULL, "
+                                 "proficiency TEXT NOT NULL, "
+                                 "density REAL DEFAULT 0.3, "
+                                 "progress REAL DEFAULT 0, "
                                  "current_location TEXT, "
                                  "current_chapter INTEGER, "
                                  "total_chapters INTEGER, "
@@ -109,17 +115,18 @@ void sqlite3_free(void *p);
                                        "id TEXT PRIMARY KEY, "
                                        "source_word TEXT NOT NULL, "
                                        "target_word TEXT NOT NULL, "
-                                       "source_language INTEGER, "
-                                       "target_language INTEGER, "
+                                       "source_lang TEXT NOT NULL, "
+                                       "target_lang TEXT NOT NULL, "
                                        "context_sentence TEXT, "
                                        "book_id TEXT, "
                                        "book_title TEXT, "
                                        "added_at INTEGER NOT NULL, "
                                        "last_reviewed_at INTEGER, "
-                                       "review_count INTEGER, "
-                                       "ease_factor REAL, "
-                                       "interval INTEGER, "
-                                       "status INTEGER)";
+                                       "review_count INTEGER DEFAULT 0, "
+                                       "ease_factor REAL DEFAULT 2.5, "
+                                       "interval INTEGER DEFAULT 0, "
+                                       "status TEXT DEFAULT 'new', "
+                                       "FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE SET NULL)";
     
     char *errorMsg = NULL;
     if (sqlite3_exec(_database, [createBooksTable UTF8String], NULL, NULL, &errorMsg) != SQLITE_OK) {
@@ -148,6 +155,37 @@ void sqlite3_free(void *p);
         return;
     }
     
+    // Spec 02-sql-schema: reading_sessions, preferences, word_list
+    NSString *createSessionsTable = @"CREATE TABLE IF NOT EXISTS reading_sessions ("
+        "id TEXT PRIMARY KEY, "
+        "book_id TEXT NOT NULL, "
+        "started_at INTEGER NOT NULL, "
+        "ended_at INTEGER, "
+        "pages_read INTEGER DEFAULT 0, "
+        "words_revealed INTEGER DEFAULT 0, "
+        "words_saved INTEGER DEFAULT 0, "
+        "FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE)";
+    NSString *createPreferencesTable = @"CREATE TABLE IF NOT EXISTS preferences ("
+        "key TEXT PRIMARY KEY, "
+        "value TEXT NOT NULL)";
+    NSString *createWordListTable = @"CREATE TABLE IF NOT EXISTS word_list ("
+        "id TEXT PRIMARY KEY, "
+        "source_word TEXT NOT NULL, "
+        "target_word TEXT NOT NULL, "
+        "source_lang TEXT NOT NULL, "
+        "target_lang TEXT NOT NULL, "
+        "proficiency TEXT NOT NULL, "
+        "frequency_rank INTEGER, "
+        "part_of_speech TEXT, "
+        "variants TEXT, "
+        "pronunciation TEXT)";
+    if (sqlite3_exec(_database, [createSessionsTable UTF8String], NULL, NULL, &errorMsg) != SQLITE_OK ||
+        sqlite3_exec(_database, [createPreferencesTable UTF8String], NULL, NULL, &errorMsg) != SQLITE_OK ||
+        sqlite3_exec(_database, [createWordListTable UTF8String], NULL, NULL, &errorMsg) != SQLITE_OK) {
+        if (errorMsg) sqlite3_free(errorMsg);
+        // Non-fatal: continue so books/vocabulary still work
+    }
+    
     if ([delegate respondsToSelector:@selector(storageService:didInitializeDatabaseWithSuccess:error:)]) {
         [delegate storageService:self didInitializeDatabaseWithSuccess:YES error:nil];
     }
@@ -165,7 +203,7 @@ void sqlite3_free(void *p);
         return;
     }
     
-    NSString *sql = @"INSERT OR REPLACE INTO books (id, title, author, cover_path, file_path, format, file_size, added_at, last_read_at, source_language, target_language, proficiency_level, word_density, progress, current_location, current_chapter, total_chapters, current_page, total_pages, reading_time_minutes, source_url, is_downloaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    NSString *sql = @"INSERT OR REPLACE INTO books (id, title, author, cover_path, file_path, format, file_size, added_at, last_read_at, source_lang, target_lang, proficiency, density, progress, current_location, current_chapter, total_chapters, current_page, total_pages, reading_time_minutes, source_url, is_downloaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     sqlite3_stmt *stmt = NULL;
     int result = sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL);
@@ -184,13 +222,13 @@ void sqlite3_free(void *p);
     sqlite3_bind_text(stmt, 3, [book.author UTF8String], -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 4, book.coverPath ? [book.coverPath UTF8String] : NULL, -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 5, [book.filePath UTF8String], -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 6, (int)book.format);
+    sqlite3_bind_text(stmt, 6, [[self formatStringForBookFormat:book.format] UTF8String], -1, SQLITE_TRANSIENT);
     sqlite3_bind_int64(stmt, 7, book.fileSize);
-    sqlite3_bind_int64(stmt, 8, (long long)[book.addedAt timeIntervalSince1970]);
-    sqlite3_bind_int64(stmt, 9, book.lastReadAt ? (long long)[book.lastReadAt timeIntervalSince1970] : 0);
-    sqlite3_bind_int(stmt, 10, (int)book.languagePair.sourceLanguage);
-    sqlite3_bind_int(stmt, 11, (int)book.languagePair.targetLanguage);
-    sqlite3_bind_int(stmt, 12, (int)book.proficiencyLevel);
+    sqlite3_bind_int64(stmt, 8, (long long)([book.addedAt timeIntervalSince1970] * 1000));
+    sqlite3_bind_int64(stmt, 9, book.lastReadAt ? (long long)([book.lastReadAt timeIntervalSince1970] * 1000) : 0);
+    sqlite3_bind_text(stmt, 10, [[XLLanguageInfo codeStringForLanguage:book.languagePair.sourceLanguage] UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 11, [[XLLanguageInfo codeStringForLanguage:book.languagePair.targetLanguage] UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 12, [[XLLanguageInfo codeStringForProficiency:book.proficiencyLevel] UTF8String], -1, SQLITE_TRANSIENT);
     sqlite3_bind_double(stmt, 13, book.wordDensity);
     sqlite3_bind_double(stmt, 14, book.progress);
     sqlite3_bind_text(stmt, 15, book.currentLocation ? [book.currentLocation UTF8String] : NULL, -1, SQLITE_TRANSIENT);
@@ -232,7 +270,7 @@ void sqlite3_free(void *p);
         return;
     }
     
-    NSString *sql = @"SELECT id, title, author, cover_path, file_path, format, file_size, added_at, last_read_at, source_language, target_language, proficiency_level, word_density, progress, current_location, current_chapter, total_chapters, current_page, total_pages, reading_time_minutes, source_url, is_downloaded FROM books WHERE id = ?";
+    NSString *sql = @"SELECT id, title, author, cover_path, file_path, format, file_size, added_at, last_read_at, source_lang, target_lang, proficiency, density, progress, current_location, current_chapter, total_chapters, current_page, total_pages, reading_time_minutes, source_url, is_downloaded FROM books WHERE id = ?";
     
     sqlite3_stmt *stmt = NULL;
     int result = sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL);
@@ -291,7 +329,7 @@ void sqlite3_free(void *p);
         dbSortField = @"last_read_at";
     }
     
-    NSString *sql = [NSString stringWithFormat:@"SELECT id, title, author, cover_path, file_path, format, file_size, added_at, last_read_at, source_language, target_language, proficiency_level, word_density, progress, current_location, current_chapter, total_chapters, current_page, total_pages, reading_time_minutes, source_url, is_downloaded FROM books ORDER BY %@ %@", dbSortField, order];
+    NSString *sql = [NSString stringWithFormat:@"SELECT id, title, author, cover_path, file_path, format, file_size, added_at, last_read_at, source_lang, target_lang, proficiency, density, progress, current_location, current_chapter, total_chapters, current_page, total_pages, reading_time_minutes, source_url, is_downloaded FROM books ORDER BY %@ %@", dbSortField, order];
     
     sqlite3_stmt *stmt = NULL;
     int result = sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL);
@@ -368,41 +406,292 @@ void sqlite3_free(void *p);
 
 - (void)saveVocabularyItem:(XLVocabularyItem *)item delegate:(id<XLStorageServiceDelegate>)delegate {
     _currentDelegate = delegate;
-    // Implementation would serialize item to database
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self saveVocabularyItem:item delegate:delegate]; }
+        return;
+    }
+    NSString *sql = @"INSERT OR REPLACE INTO vocabulary (id, source_word, target_word, source_lang, target_lang, context_sentence, book_id, book_title, added_at, last_reviewed_at, review_count, ease_factor, interval, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didSaveVocabularyItem:withSuccess:error:)]) {
+            NSError *err = [NSError errorWithDomain:@"XLStorageService" code:1 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+            [delegate storageService:self didSaveVocabularyItem:item withSuccess:NO error:err];
+        }
+        return;
+    }
+    long long addedMs = (long long)([item.addedAt timeIntervalSince1970] * 1000);
+    long long lastRevMs = item.lastReviewedAt ? (long long)([item.lastReviewedAt timeIntervalSince1970] * 1000) : 0;
+    sqlite3_bind_text(stmt, 1, [item.vocabularyId UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, [item.sourceWord UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, [item.targetWord UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 4, [[XLLanguageInfo codeStringForLanguage:item.sourceLanguage] UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 5, [[XLLanguageInfo codeStringForLanguage:item.targetLanguage] UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 6, item.contextSentence ? [item.contextSentence UTF8String] : NULL, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 7, item.bookId ? [item.bookId UTF8String] : NULL, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 8, item.bookTitle ? [item.bookTitle UTF8String] : NULL, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 9, addedMs);
+    sqlite3_bind_int64(stmt, 10, lastRevMs);
+    sqlite3_bind_int(stmt, 11, (int)item.reviewCount);
+    sqlite3_bind_double(stmt, 12, item.easeFactor);
+    sqlite3_bind_int(stmt, 13, (int)item.interval);
+    sqlite3_bind_text(stmt, 14, [[XLVocabularyItem codeStringForStatus:item.status] UTF8String], -1, SQLITE_TRANSIENT);
+    int result = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
     if ([delegate respondsToSelector:@selector(storageService:didSaveVocabularyItem:withSuccess:error:)]) {
-        [delegate storageService:self didSaveVocabularyItem:item withSuccess:YES error:nil];
+        [delegate storageService:self didSaveVocabularyItem:item withSuccess:(result == SQLITE_DONE) error:(result == SQLITE_DONE ? nil : [NSError errorWithDomain:@"XLStorageService" code:result userInfo:nil])];
     }
 }
 
 - (void)getVocabularyItemWithId:(NSString *)itemId delegate:(id<XLStorageServiceDelegate>)delegate {
     _currentDelegate = delegate;
-    // Implementation would query database
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self getVocabularyItemWithId:itemId delegate:delegate]; }
+        return;
+    }
+    NSString *sql = @"SELECT id, source_word, target_word, source_lang, target_lang, context_sentence, book_id, book_title, added_at, last_reviewed_at, review_count, ease_factor, interval, status FROM vocabulary WHERE id = ?";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didGetVocabularyItem:withError:)]) {
+            [delegate storageService:self didGetVocabularyItem:nil withError:[NSError errorWithDomain:@"XLStorageService" code:1 userInfo:nil]];
+        }
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, [itemId UTF8String], -1, SQLITE_TRANSIENT);
+    XLVocabularyItem *item = nil;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        item = [self vocabularyItemFromStatement:stmt];
+    }
+    sqlite3_finalize(stmt);
     if ([delegate respondsToSelector:@selector(storageService:didGetVocabularyItem:withError:)]) {
-        [delegate storageService:self didGetVocabularyItem:nil withError:nil];
+        [delegate storageService:self didGetVocabularyItem:item withError:nil];
     }
 }
 
 - (void)getAllVocabularyItemsWithDelegate:(id<XLStorageServiceDelegate>)delegate {
     _currentDelegate = delegate;
-    // Implementation would query database
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self getAllVocabularyItemsWithDelegate:delegate]; }
+        return;
+    }
+    NSString *sql = @"SELECT id, source_word, target_word, source_lang, target_lang, context_sentence, book_id, book_title, added_at, last_reviewed_at, review_count, ease_factor, interval, status FROM vocabulary ORDER BY added_at DESC";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didGetAllVocabularyItems:withError:)]) {
+            [delegate storageService:self didGetAllVocabularyItems:@[] withError:[NSError errorWithDomain:@"XLStorageService" code:1 userInfo:nil]];
+        }
+        return;
+    }
+    NSMutableArray *items = [NSMutableArray array];
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        XLVocabularyItem *item = [self vocabularyItemFromStatement:stmt];
+        if (item) [items addObject:item];
+    }
+    sqlite3_finalize(stmt);
     if ([delegate respondsToSelector:@selector(storageService:didGetAllVocabularyItems:withError:)]) {
-        [delegate storageService:self didGetAllVocabularyItems:[[NSArray alloc] init] withError:nil];
+        [delegate storageService:self didGetAllVocabularyItems:[items copy] withError:nil];
     }
 }
 
 - (void)deleteVocabularyItemWithId:(NSString *)itemId delegate:(id<XLStorageServiceDelegate>)delegate {
     _currentDelegate = delegate;
-    // Implementation would delete from database
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self deleteVocabularyItemWithId:itemId delegate:delegate]; }
+        return;
+    }
+    NSString *sql = @"DELETE FROM vocabulary WHERE id = ?";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didDeleteVocabularyItemWithId:withSuccess:error:)]) {
+            [delegate storageService:self didDeleteVocabularyItemWithId:itemId withSuccess:NO error:[NSError errorWithDomain:@"XLStorageService" code:1 userInfo:nil]];
+        }
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, [itemId UTF8String], -1, SQLITE_TRANSIENT);
+    int result = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
     if ([delegate respondsToSelector:@selector(storageService:didDeleteVocabularyItemWithId:withSuccess:error:)]) {
-        [delegate storageService:self didDeleteVocabularyItemWithId:itemId withSuccess:YES error:nil];
+        [delegate storageService:self didDeleteVocabularyItemWithId:itemId withSuccess:(result == SQLITE_DONE) error:nil];
     }
 }
 
 - (void)searchVocabularyWithQuery:(NSString *)query delegate:(id<XLStorageServiceDelegate>)delegate {
     _currentDelegate = delegate;
-    // Implementation would search database
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self searchVocabularyWithQuery:query delegate:delegate]; }
+        return;
+    }
+    NSString *sql = @"SELECT id, source_word, target_word, source_lang, target_lang, context_sentence, book_id, book_title, added_at, last_reviewed_at, review_count, ease_factor, interval, status FROM vocabulary WHERE source_word LIKE ? OR target_word LIKE ? ORDER BY added_at DESC";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didSearchVocabulary:withError:)]) {
+            [delegate storageService:self didSearchVocabulary:@[] withError:[NSError errorWithDomain:@"XLStorageService" code:1 userInfo:nil]];
+        }
+        return;
+    }
+    NSString *pattern = [NSString stringWithFormat:@"%%%@%%", query];
+    sqlite3_bind_text(stmt, 1, [pattern UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, [pattern UTF8String], -1, SQLITE_TRANSIENT);
+    NSMutableArray *items = [NSMutableArray array];
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        XLVocabularyItem *item = [self vocabularyItemFromStatement:stmt];
+        if (item) [items addObject:item];
+    }
+    sqlite3_finalize(stmt);
     if ([delegate respondsToSelector:@selector(storageService:didSearchVocabulary:withError:)]) {
-        [delegate storageService:self didSearchVocabulary:[[NSArray alloc] init] withError:nil];
+        [delegate storageService:self didSearchVocabulary:[items copy] withError:nil];
+    }
+}
+
+- (NSString *)formatStringForBookFormat:(XLBookFormat)format {
+    switch (format) {
+        case XLBookFormatEpub: return @"epub";
+        case XLBookFormatFb2: return @"fb2";
+        case XLBookFormatMobi: return @"mobi";
+        case XLBookFormatTxt: return @"txt";
+    }
+    return @"epub";
+}
+
+- (XLBookFormat)bookFormatForString:(NSString *)s {
+    NSString *lower = [s lowercaseString];
+    if ([lower isEqualToString:@"fb2"]) return XLBookFormatFb2;
+    if ([lower isEqualToString:@"mobi"]) return XLBookFormatMobi;
+    if ([lower isEqualToString:@"txt"]) return XLBookFormatTxt;
+    return XLBookFormatEpub;
+}
+
+- (XLVocabularyItem *)vocabularyItemFromStatement:(sqlite3_stmt *)stmt {
+    XLVocabularyItem *item = [[XLVocabularyItem alloc] init];
+    const char *cid = (const char *)sqlite3_column_text(stmt, 0);
+    item.vocabularyId = cid ? [NSString stringWithUTF8String:cid] : @"";
+    const char *src = (const char *)sqlite3_column_text(stmt, 1);
+    item.sourceWord = src ? [NSString stringWithUTF8String:src] : @"";
+    const char *tgt = (const char *)sqlite3_column_text(stmt, 2);
+    item.targetWord = tgt ? [NSString stringWithUTF8String:tgt] : @"";
+    const char *sl = (const char *)sqlite3_column_text(stmt, 3);
+    const char *tl = (const char *)sqlite3_column_text(stmt, 4);
+    item.sourceLanguage = [XLLanguageInfo languageForCodeString:sl ? [NSString stringWithUTF8String:sl] : @"en"];
+    item.targetLanguage = [XLLanguageInfo languageForCodeString:tl ? [NSString stringWithUTF8String:tl] : @"en"];
+    const char *ctx = (const char *)sqlite3_column_text(stmt, 5);
+    item.contextSentence = ctx ? [NSString stringWithUTF8String:ctx] : nil;
+    const char *bid = (const char *)sqlite3_column_text(stmt, 6);
+    item.bookId = bid ? [NSString stringWithUTF8String:bid] : nil;
+    const char *bt = (const char *)sqlite3_column_text(stmt, 7);
+    item.bookTitle = bt ? [NSString stringWithUTF8String:bt] : nil;
+    long long addedMs = sqlite3_column_int64(stmt, 8);
+    item.addedAt = [NSDate dateWithTimeIntervalSince1970:addedMs / 1000.0];
+    long long lastRevMs = sqlite3_column_int64(stmt, 9);
+    item.lastReviewedAt = lastRevMs > 0 ? [NSDate dateWithTimeIntervalSince1970:lastRevMs / 1000.0] : nil;
+    item.reviewCount = sqlite3_column_int(stmt, 10);
+    item.easeFactor = sqlite3_column_double(stmt, 11);
+    item.interval = sqlite3_column_int(stmt, 12);
+    const char *st = (const char *)sqlite3_column_text(stmt, 13);
+    item.status = [XLVocabularyItem statusForCodeString:st ? [NSString stringWithUTF8String:st] : @"new"];
+    return item;
+}
+
+- (void)getVocabularyDueForReviewWithLimit:(NSInteger)limit delegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self getVocabularyDueForReviewWithLimit:limit delegate:delegate]; }
+        return;
+    }
+    long long nowMs = (long long)([[NSDate date] timeIntervalSince1970] * 1000);
+    NSString *sql = @"SELECT id, source_word, target_word, source_lang, target_lang, context_sentence, book_id, book_title, added_at, last_reviewed_at, review_count, ease_factor, interval, status FROM vocabulary WHERE status != 'learned' AND (last_reviewed_at IS NULL OR (last_reviewed_at + interval * 86400000) <= ?) ORDER BY last_reviewed_at ASC LIMIT ?";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didGetVocabularyDueForReview:withError:)]) {
+            [delegate storageService:self didGetVocabularyDueForReview:@[] withError:[NSError errorWithDomain:@"XLStorageService" code:1 userInfo:nil]];
+        }
+        return;
+    }
+    sqlite3_bind_int64(stmt, 1, nowMs);
+    sqlite3_bind_int(stmt, 2, (int)limit);
+    NSMutableArray *items = [NSMutableArray array];
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        XLVocabularyItem *item = [self vocabularyItemFromStatement:stmt];
+        if (item) [items addObject:item];
+    }
+    sqlite3_finalize(stmt);
+    if ([delegate respondsToSelector:@selector(storageService:didGetVocabularyDueForReview:withError:)]) {
+        [delegate storageService:self didGetVocabularyDueForReview:[items copy] withError:nil];
+    }
+}
+
+- (void)recordReviewForItemId:(NSString *)itemId quality:(NSInteger)quality delegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self recordReviewForItemId:itemId quality:quality delegate:delegate]; }
+        return;
+    }
+    NSString *selSql = @"SELECT id, source_word, target_word, source_lang, target_lang, context_sentence, book_id, book_title, added_at, last_reviewed_at, review_count, ease_factor, interval, status FROM vocabulary WHERE id = ?";
+    sqlite3_stmt *selStmt = NULL;
+    if (sqlite3_prepare_v2(_database, [selSql UTF8String], -1, &selStmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didRecordReviewForItemId:withSuccess:error:)]) {
+            [delegate storageService:self didRecordReviewForItemId:itemId withSuccess:NO error:[NSError errorWithDomain:@"XLStorageService" code:1 userInfo:nil]];
+        }
+        return;
+    }
+    sqlite3_bind_text(selStmt, 1, [itemId UTF8String], -1, SQLITE_TRANSIENT);
+    if (sqlite3_step(selStmt) != SQLITE_ROW) {
+        sqlite3_finalize(selStmt);
+        if ([delegate respondsToSelector:@selector(storageService:didRecordReviewForItemId:withSuccess:error:)]) {
+            [delegate storageService:self didRecordReviewForItemId:itemId withSuccess:NO error:[NSError errorWithDomain:@"XLStorageService" code:2 userInfo:@{ NSLocalizedDescriptionKey: @"Item not found" }]];
+        }
+        return;
+    }
+    XLVocabularyItem *item = [self vocabularyItemFromStatement:selStmt];
+    sqlite3_finalize(selStmt);
+    if (!item) {
+        if ([delegate respondsToSelector:@selector(storageService:didRecordReviewForItemId:withSuccess:error:)]) {
+            [delegate storageService:self didRecordReviewForItemId:itemId withSuccess:NO error:[NSError errorWithDomain:@"XLStorageService" code:2 userInfo:nil]];
+        }
+        return;
+    }
+    /* Use shared C SM-2 from xenolexia-shared-c for identical behaviour with C# */
+    xenolexia_sm2_state_t state = {
+        .ease_factor = item.easeFactor,
+        .interval = (int)item.interval,
+        .review_count = item.reviewCount,
+        .status = XENOLEXIA_SM2_NEW
+    };
+    xenolexia_sm2_step((int)quality, &state);
+    NSInteger rc = state.review_count;
+    double ef = state.ease_factor;
+    NSInteger iv = state.interval;
+    XLVocabularyStatus newStatus = item.status;
+    switch (state.status) {
+        case XENOLEXIA_SM2_LEARNING: newStatus = XLVocabularyStatusLearning; break;
+        case XENOLEXIA_SM2_REVIEW:   newStatus = XLVocabularyStatusReview; break;
+        case XENOLEXIA_SM2_LEARNED:  newStatus = XLVocabularyStatusLearned; break;
+        default:                     newStatus = XLVocabularyStatusNew; break;
+    }
+    long long nowMs = (long long)([[NSDate date] timeIntervalSince1970] * 1000);
+    NSString *upSql = @"UPDATE vocabulary SET last_reviewed_at = ?, review_count = ?, ease_factor = ?, interval = ?, status = ? WHERE id = ?";
+    sqlite3_stmt *upStmt = NULL;
+    if (sqlite3_prepare_v2(_database, [upSql UTF8String], -1, &upStmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didRecordReviewForItemId:withSuccess:error:)]) {
+            [delegate storageService:self didRecordReviewForItemId:itemId withSuccess:NO error:[NSError errorWithDomain:@"XLStorageService" code:1 userInfo:nil]];
+        }
+        return;
+    }
+    sqlite3_bind_int64(upStmt, 1, nowMs);
+    sqlite3_bind_int(upStmt, 2, (int)rc);
+    sqlite3_bind_double(upStmt, 3, ef);
+    sqlite3_bind_int(upStmt, 4, (int)iv);
+    sqlite3_bind_text(upStmt, 5, [[XLVocabularyItem codeStringForStatus:newStatus] UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(upStmt, 6, [itemId UTF8String], -1, SQLITE_TRANSIENT);
+    int result = sqlite3_step(upStmt);
+    sqlite3_finalize(upStmt);
+    if ([delegate respondsToSelector:@selector(storageService:didRecordReviewForItemId:withSuccess:error:)]) {
+        [delegate storageService:self didRecordReviewForItemId:itemId withSuccess:(result == SQLITE_DONE) error:nil];
     }
 }
 
@@ -424,20 +713,24 @@ void sqlite3_free(void *p);
     const char *filePathStr = (const char *)sqlite3_column_text(stmt, 4);
     book.filePath = filePathStr ? [NSString stringWithUTF8String:filePathStr] : @"";
     
-    book.format = (XLBookFormat)sqlite3_column_int(stmt, 5);
+    const char *formatStr = (const char *)sqlite3_column_text(stmt, 5);
+    book.format = [self bookFormatForString:formatStr ? [NSString stringWithUTF8String:formatStr] : @"epub"];
     book.fileSize = sqlite3_column_int64(stmt, 6);
     
-    long long addedAtTimestamp = sqlite3_column_int64(stmt, 7);
-    book.addedAt = [NSDate dateWithTimeIntervalSince1970:addedAtTimestamp];
+    long long addedAtMs = sqlite3_column_int64(stmt, 7);
+    book.addedAt = [NSDate dateWithTimeIntervalSince1970:addedAtMs / 1000.0];
     
-    long long lastReadAtTimestamp = sqlite3_column_int64(stmt, 8);
-    book.lastReadAt = lastReadAtTimestamp > 0 ? [NSDate dateWithTimeIntervalSince1970:lastReadAtTimestamp] : nil;
+    long long lastReadAtMs = sqlite3_column_int64(stmt, 8);
+    book.lastReadAt = lastReadAtMs > 0 ? [NSDate dateWithTimeIntervalSince1970:lastReadAtMs / 1000.0] : nil;
     
-    XLLanguage sourceLang = (XLLanguage)sqlite3_column_int(stmt, 9);
-    XLLanguage targetLang = (XLLanguage)sqlite3_column_int(stmt, 10);
+    const char *srcLangStr = (const char *)sqlite3_column_text(stmt, 9);
+    const char *tgtLangStr = (const char *)sqlite3_column_text(stmt, 10);
+    XLLanguage sourceLang = [XLLanguageInfo languageForCodeString:srcLangStr ? [NSString stringWithUTF8String:srcLangStr] : @"en"];
+    XLLanguage targetLang = [XLLanguageInfo languageForCodeString:tgtLangStr ? [NSString stringWithUTF8String:tgtLangStr] : @"en"];
     book.languagePair = [XLLanguagePair pairWithSource:sourceLang target:targetLang];
     
-    book.proficiencyLevel = (XLProficiencyLevel)sqlite3_column_int(stmt, 11);
+    const char *profStr = (const char *)sqlite3_column_text(stmt, 11);
+    book.proficiencyLevel = [XLLanguageInfo proficiencyForCodeString:profStr ? [NSString stringWithUTF8String:profStr] : @"beginner"];
     book.wordDensity = sqlite3_column_double(stmt, 12);
     book.progress = sqlite3_column_double(stmt, 13);
     

@@ -5,6 +5,7 @@
 
 #import "XLBookParserService.h"
 #import "XLEpubParser.h"
+#import "XLNativeParsers.h"
 
 @implementation XLBookParserService
 
@@ -51,6 +52,15 @@
             break;
         case XLBookFormatTxt:
             [self parseTxtAtPath:filePath withCompletion:completion];
+            break;
+        case XLBookFormatPdf:
+            [self parsePdfAtPath:filePath withCompletion:completion];
+            break;
+        case XLBookFormatFb2:
+            [self parseFb2AtPath:filePath withCompletion:completion];
+            break;
+        case XLBookFormatMobi:
+            [self parseMobiAtPath:filePath withCompletion:completion];
             break;
         default:
             if (completion) {
@@ -120,15 +130,11 @@
 
 - (XLBookFormat)detectFormat:(NSString *)filePath {
     NSString *extension = [[filePath pathExtension] lowercaseString];
-    if ([extension isEqualToString:@"epub"]) {
-        return XLBookFormatEpub;
-    } else if ([extension isEqualToString:@"fb2"]) {
-        return XLBookFormatFb2;
-    } else if ([extension isEqualToString:@"mobi"]) {
-        return XLBookFormatMobi;
-    } else if ([extension isEqualToString:@"txt"]) {
-        return XLBookFormatTxt;
-    }
+    if ([extension isEqualToString:@"epub"]) return XLBookFormatEpub;
+    if ([extension isEqualToString:@"fb2"]) return XLBookFormatFb2;
+    if ([extension isEqualToString:@"mobi"] || [extension isEqualToString:@"azw"] || [extension isEqualToString:@"azw3"]) return XLBookFormatMobi;
+    if ([extension isEqualToString:@"pdf"]) return XLBookFormatPdf;
+    if ([extension isEqualToString:@"txt"]) return XLBookFormatTxt;
     return XLBookFormatTxt; // Default
 }
 
@@ -188,13 +194,30 @@
 
 - (void)parseEpubAtPath:(NSString *)filePath
          withCompletion:(void(^)(XLParsedBook * _Nullable parsedBook, NSError * _Nullable error))completion {
-    // Use XLEpubParser to parse EPUB file
     NSError *error = nil;
     XLParsedBook *parsedBook = [XLEpubParser parseEpubAtPath:filePath error:&error];
-    
-    if (completion) {
-        completion(parsedBook, error);
-    }
+    if (completion) completion(parsedBook, error);
+}
+
+- (void)parsePdfAtPath:(NSString *)filePath
+        withCompletion:(void(^)(XLParsedBook * _Nullable parsedBook, NSError * _Nullable error))completion {
+    NSError *error = nil;
+    XLParsedBook *parsedBook = [XLNativeParsers parsePdfAtPath:filePath error:&error];
+    if (completion) completion(parsedBook, error);
+}
+
+- (void)parseFb2AtPath:(NSString *)filePath
+        withCompletion:(void(^)(XLParsedBook * _Nullable parsedBook, NSError * _Nullable error))completion {
+    NSError *error = nil;
+    XLParsedBook *parsedBook = [XLNativeParsers parseFb2AtPath:filePath error:&error];
+    if (completion) completion(parsedBook, error);
+}
+
+- (void)parseMobiAtPath:(NSString *)filePath
+        withCompletion:(void(^)(XLParsedBook * _Nullable parsedBook, NSError * _Nullable error))completion {
+    NSError *error = nil;
+    XLParsedBook *parsedBook = [XLNativeParsers parseMobiAtPath:filePath error:&error];
+    if (completion) completion(parsedBook, error);
 }
 
 @end

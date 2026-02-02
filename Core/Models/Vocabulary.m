@@ -68,6 +68,24 @@
     return item;
 }
 
++ (NSString *)codeStringForStatus:(XLVocabularyStatus)status {
+    switch (status) {
+        case XLVocabularyStatusNew: return @"new";
+        case XLVocabularyStatusLearning: return @"learning";
+        case XLVocabularyStatusReview: return @"review";
+        case XLVocabularyStatusLearned: return @"learned";
+    }
+    return @"new";
+}
+
++ (XLVocabularyStatus)statusForCodeString:(NSString *)codeString {
+    NSString *s = [codeString lowercaseString];
+    if ([s isEqualToString:@"learning"]) return XLVocabularyStatusLearning;
+    if ([s isEqualToString:@"review"]) return XLVocabularyStatusReview;
+    if ([s isEqualToString:@"learned"]) return XLVocabularyStatusLearned;
+    return XLVocabularyStatusNew;
+}
+
 - (instancetype)init {
     self = [super init];
     if (self) {

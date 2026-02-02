@@ -13,6 +13,7 @@ typedef NS_ENUM(NSInteger, XLBookFormat) {
     XLBookFormatEpub = 0,
     XLBookFormatFb2,
     XLBookFormatMobi,
+    XLBookFormatPdf,
     XLBookFormatTxt
 };
 

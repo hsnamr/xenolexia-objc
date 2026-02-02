@@ -118,6 +118,22 @@
     return langNumber ? langNumber.integerValue : XLLanguageEnglish;
 }
 
++ (NSString *)codeStringForProficiency:(XLProficiencyLevel)level {
+    switch (level) {
+        case XLProficiencyLevelBeginner: return @"beginner";
+        case XLProficiencyLevelIntermediate: return @"intermediate";
+        case XLProficiencyLevelAdvanced: return @"advanced";
+    }
+    return @"beginner";
+}
+
++ (XLProficiencyLevel)proficiencyForCodeString:(NSString *)codeString {
+    NSString *s = [codeString lowercaseString];
+    if ([s isEqualToString:@"intermediate"]) return XLProficiencyLevelIntermediate;
+    if ([s isEqualToString:@"advanced"]) return XLProficiencyLevelAdvanced;
+    return XLProficiencyLevelBeginner;
+}
+
 @end
 
 @implementation XLLanguagePair

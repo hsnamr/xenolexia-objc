@@ -25,6 +25,10 @@
 - (void)getAllVocabularyItemsWithDelegate:(id<XLStorageServiceDelegate>)delegate;
 - (void)deleteVocabularyItemWithId:(NSString *)itemId delegate:(id<XLStorageServiceDelegate>)delegate;
 - (void)searchVocabularyWithQuery:(NSString *)query delegate:(id<XLStorageServiceDelegate>)delegate;
+/// Spec: items due for review (status != learned and last_reviewed_at + interval*86400000 <= now), limit default 20
+- (void)getVocabularyDueForReviewWithLimit:(NSInteger)limit delegate:(id<XLStorageServiceDelegate>)delegate;
+/// Spec: record one SM-2 review step (quality 0-5); formula matches xenolexia-shared-c/sm2.c
+- (void)recordReviewForItemId:(NSString *)itemId quality:(NSInteger)quality delegate:(id<XLStorageServiceDelegate>)delegate;
 
 @end
 

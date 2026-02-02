@@ -82,6 +82,8 @@ typedef NS_ENUM(NSInteger, XLCEFRLevel) {
 + (XLLanguageInfo *)infoForCode:(XLLanguage)code;
 + (NSString *)codeStringForLanguage:(XLLanguage)language;
 + (XLLanguage)languageForCodeString:(NSString *)codeString;
++ (NSString *)codeStringForProficiency:(XLProficiencyLevel)level;
++ (XLProficiencyLevel)proficiencyForCodeString:(NSString *)codeString;
 
 @end
 
