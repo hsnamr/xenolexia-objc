@@ -7,6 +7,8 @@
 #import "XLReaderWindowController.h"
 #import "../../../../Core/Services/XLManager.h"
 #import "../../../../Core/Services/XLBookParserService.h"
+#import "../../../../Core/Services/XLStorageService.h"
+#import "../../../../Core/Services/XLStorageServiceDelegate.h"
 
 // Custom text view for foreign word click detection
 @interface XLReaderTextView : NSTextView {
@@ -67,6 +69,7 @@
     [_foreignWordRanges release];
     [_foreignWordDataMap release];
     [_settings release];
+    [_sessionId release];
     [super dealloc];
 }
 
@@ -154,8 +157,9 @@
     [_scrollView setDocumentView:_textView];
     [contentView addSubview:_scrollView];
     
-    // Load book chapters and current chapter
-    [self loadBookChapters];
+    // Load preferences first (Phase 1.3), then chapters; session starts after chapters load (Phase 1.2)
+    XLStorageService *storage = [XLStorageService sharedService];
+    [storage getPreferencesWithDelegate:self];
 }
 
 - (void)loadBookChapters {
@@ -320,17 +324,15 @@
     if (!_chapters || [_chapters count] == 0) {
         return;
     }
-    
     double progress = ((double)_currentChapterIndex / (double)[_chapters count]) * 100.0;
     [_progressIndicator setDoubleValue:progress];
     [_progressLabel setStringValue:[NSString stringWithFormat:@"%.0f%%", progress]];
-    
-    // Update book progress
     _book.progress = progress;
     _book.currentChapter = _currentChapterIndex;
-    
-    // Save progress (async, don't wait)
-    // TODO: Save to storage service
+    _book.totalChapters = [_chapters count];
+    _book.lastReadAt = [NSDate date];
+    _book.currentLocation = [NSString stringWithFormat:@"%ld", (long)_currentChapterIndex];
+    [[XLStorageService sharedService] saveBook:_book delegate:self];
 }
 
 #pragma mark - Actions
@@ -421,11 +423,38 @@
 }
 
 - (void)windowWillClose:(NSNotification *)notification {
-    // Save reading progress
     [self updateProgress];
-    
+    if (_sessionId) {
+        [[XLStorageService sharedService] endReadingSessionWithId:_sessionId wordsRevealed:_wordsRevealed wordsSaved:_wordsSaved delegate:self];
+    }
     if ([_delegate respondsToSelector:@selector(readerDidClose)]) {
         [_delegate readerDidClose];
+    }
+}
+
+#pragma mark - XLStorageServiceDelegate (Phase 1)
+
+- (void)storageService:(id)service didGetPreferences:(XLUserPreferences *)prefs withError:(NSError *)error {
+    if (error || !prefs || !prefs.readerSettings) {
+        [self loadBookChapters];
+        return;
+    }
+    _settings.theme = prefs.readerSettings.theme;
+    _settings.fontFamily = prefs.readerSettings.fontFamily ? [prefs.readerSettings.fontFamily copy] : @"System";
+    _settings.fontSize = prefs.readerSettings.fontSize;
+    _settings.lineHeight = prefs.readerSettings.lineHeight;
+    _settings.marginHorizontal = prefs.readerSettings.marginHorizontal;
+    _settings.marginVertical = prefs.readerSettings.marginVertical;
+    _settings.textAlign = prefs.readerSettings.textAlign;
+    _settings.brightness = prefs.readerSettings.brightness;
+    [self applyReaderSettings];
+    [self loadBookChapters];
+}
+
+- (void)storageService:(id)service didStartReadingSessionWithId:(NSString *)sessionId error:(NSError *)error {
+    if (sessionId) {
+        [_sessionId release];
+        _sessionId = [sessionId retain];
     }
 }
 

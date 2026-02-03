@@ -37,6 +37,11 @@
     // Foreign word tracking
     NSMutableArray *_foreignWordRanges;
     NSMutableDictionary *_foreignWordDataMap;
+    
+    // Reading session (Phase 1)
+    NSString *_sessionId;
+    NSInteger _wordsRevealed;
+    NSInteger _wordsSaved;
 }
 
 - (instancetype)initWithBook:(XLBook *)book;

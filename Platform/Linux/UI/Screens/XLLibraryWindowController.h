@@ -14,6 +14,10 @@
 - (void)libraryDidRequestImport;
 - (void)libraryDidRequestDeleteBook:(XLBook *)book;
 - (void)libraryDidRequestBookDetail:(XLBook *)book;
+- (void)libraryDidRequestVocabulary;
+- (void)libraryDidRequestReview;
+- (void)libraryDidRequestSettings;
+- (void)libraryDidRequestStatistics;
 @end
 
 @class XLStorageService;
@@ -23,8 +27,17 @@
     NSArray *_books;
     NSArray *_filteredBooks;
     NSTableView *_tableView;
+    NSScrollView *_tableScrollView;
+    NSScrollView *_gridScrollView;
+    NSView *_gridContentView;
+    NSPopUpButton *_viewPopUp;
+    BOOL _showingGrid;
     NSSearchField *_searchField;
     NSButton *_importButton;
+    NSButton *_vocabularyButton;
+    NSButton *_reviewButton;
+    NSButton *_settingsButton;
+    NSButton *_statisticsButton;
     NSButton *_sortButton;
     NSButton *_deleteButton;
     NSTextField *_statusLabel;

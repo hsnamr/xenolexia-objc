@@ -10,6 +10,11 @@ Xenolexia_OBJC_FILES = \
 	UI/Screens/XLLibraryWindowController.m \
 	UI/Screens/XLBookDetailWindowController.m \
 	UI/Screens/XLReaderWindowController.m \
+	UI/Screens/XLVocabularyWindowController.m \
+	UI/Screens/XLReviewWindowController.m \
+	UI/Screens/XLSettingsWindowController.m \
+	UI/Screens/XLOnboardingWindowController.m \
+	UI/Screens/XLStatisticsWindowController.m \
 	../../Core/Models/Book.m \
 	../../Core/Models/Language.m \
 	../../Core/Models/Vocabulary.m \
@@ -46,7 +51,12 @@ Xenolexia_HEADER_FILES = \
 	UI/XLLinuxApp.h \
 	UI/Screens/XLLibraryWindowController.h \
 	UI/Screens/XLBookDetailWindowController.h \
-	UI/Screens/XLReaderWindowController.h
+	UI/Screens/XLReaderWindowController.h \
+	UI/Screens/XLVocabularyWindowController.h \
+	UI/Screens/XLReviewWindowController.h \
+	UI/Screens/XLSettingsWindowController.h \
+	UI/Screens/XLOnboardingWindowController.h \
+	UI/Screens/XLStatisticsWindowController.h
 
 # Link against SQLite, libxml2, zlib, and xenolexia-shared-c (SM-2, EPUB, PDF, FB2, MOBI)
 SHARED_C_DIR = ../../../xenolexia-shared-c

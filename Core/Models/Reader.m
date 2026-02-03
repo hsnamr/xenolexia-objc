@@ -73,6 +73,38 @@
 
 @end
 
+@implementation XLUserPreferences
+
++ (instancetype)defaultPreferences {
+    XLUserPreferences *prefs = [[XLUserPreferences alloc] init];
+    prefs.defaultSourceLanguage = XLLanguageEnglish;
+    prefs.defaultTargetLanguage = XLLanguageSpanish;
+    prefs.defaultProficiencyLevel = XLProficiencyLevelBeginner;
+    prefs.defaultWordDensity = 0.3;
+    prefs.readerSettings = [XLReaderSettings defaultSettings];
+    prefs.hasCompletedOnboarding = NO;
+    prefs.notificationsEnabled = NO;
+    prefs.dailyGoal = 30;
+    return prefs;
+}
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        self.defaultSourceLanguage = XLLanguageEnglish;
+        self.defaultTargetLanguage = XLLanguageSpanish;
+        self.defaultProficiencyLevel = XLProficiencyLevelBeginner;
+        self.defaultWordDensity = 0.3;
+        self.readerSettings = [XLReaderSettings defaultSettings];
+        self.hasCompletedOnboarding = NO;
+        self.notificationsEnabled = NO;
+        self.dailyGoal = 30;
+    }
+    return self;
+}
+
+@end
+
 @implementation XLForeignWordData
 
 + (instancetype)dataWithOriginalWord:(NSString *)originalWord

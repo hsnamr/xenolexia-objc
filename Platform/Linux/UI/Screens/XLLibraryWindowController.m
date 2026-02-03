@@ -6,7 +6,19 @@
 #import "XLLibraryWindowController.h"
 #import "../../../../Core/Services/XLStorageService.h"
 #import "../../../../Core/Services/XLManager.h"
+#import <objc/runtime.h>
 
+static const CGFloat kCardWidth = 160;
+static const CGFloat kCardHeight = 220;
+static const CGFloat kCardSpacing = 16;
+static const NSInteger kGridColumns = 4;
+
+@interface XLLibraryWindowController ()
+- (void)rebuildGrid;
+- (void)switchToTableView;
+- (void)switchToGridView;
+- (void)gridCardDoubleClicked:(id)sender;
+@end
 
 @implementation XLLibraryWindowController
 
@@ -32,13 +44,19 @@
     // Create UI programmatically
     NSView *contentView = [self.window contentView];
     
-    // Create search field
-    _searchField = [[NSSearchField alloc] initWithFrame:NSMakeRect(10, 550, 500, 30)];
+    _searchField = [[NSSearchField alloc] initWithFrame:NSMakeRect(10, 550, 400, 30)];
     [_searchField setTarget:self];
     [_searchField setAction:@selector(searchFieldChanged:)];
     [contentView addSubview:_searchField];
+
+    _viewPopUp = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(420, 550, 90, 30)];
+    [_viewPopUp addItemWithTitle:@"Table"];
+    [_viewPopUp addItemWithTitle:@"Grid"];
+    [_viewPopUp setTarget:self];
+    [_viewPopUp setAction:@selector(viewPopUpChanged:)];
+    [contentView addSubview:_viewPopUp];
+    _showingGrid = NO;
     
-    // Create sort button
     _sortButton = [[NSButton alloc] initWithFrame:NSMakeRect(520, 550, 80, 30)];
     [_sortButton setTitle:@"Sort"];
     [_sortButton setTarget:self];
@@ -52,8 +70,31 @@
     [_deleteButton setAction:@selector(deleteButtonClicked:)];
     [contentView addSubview:_deleteButton];
     
-    // Create import button
-    _importButton = [[NSButton alloc] initWithFrame:NSMakeRect(700, 550, 100, 30)];
+    _vocabularyButton = [[NSButton alloc] initWithFrame:NSMakeRect(670, 550, 90, 30)];
+    [_vocabularyButton setTitle:@"Vocabulary"];
+    [_vocabularyButton setTarget:self];
+    [_vocabularyButton setAction:@selector(vocabularyButtonClicked:)];
+    [contentView addSubview:_vocabularyButton];
+
+    _reviewButton = [[NSButton alloc] initWithFrame:NSMakeRect(770, 550, 80, 30)];
+    [_reviewButton setTitle:@"Review"];
+    [_reviewButton setTarget:self];
+    [_reviewButton setAction:@selector(reviewButtonClicked:)];
+    [contentView addSubview:_reviewButton];
+
+    _settingsButton = [[NSButton alloc] initWithFrame:NSMakeRect(860, 550, 70, 30)];
+    [_settingsButton setTitle:@"Settings"];
+    [_settingsButton setTarget:self];
+    [_settingsButton setAction:@selector(settingsButtonClicked:)];
+    [contentView addSubview:_settingsButton];
+
+    _statisticsButton = [[NSButton alloc] initWithFrame:NSMakeRect(940, 550, 80, 30)];
+    [_statisticsButton setTitle:@"Statistics"];
+    [_statisticsButton setTarget:self];
+    [_statisticsButton setAction:@selector(statisticsButtonClicked:)];
+    [contentView addSubview:_statisticsButton];
+
+    _importButton = [[NSButton alloc] initWithFrame:NSMakeRect(1030, 550, 100, 30)];
     [_importButton setTitle:@"Import Book"];
     [_importButton setTarget:self];
     [_importButton setAction:@selector(importButtonClicked:)];
@@ -102,9 +143,19 @@
     [_tableView addTableColumn:formatColumn];
     
     [scrollView setDocumentView:_tableView];
+    _tableScrollView = [scrollView retain];
     [contentView addSubview:scrollView];
+
+    _gridScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(10, 10, 780, 500)];
+    [_gridScrollView setHasVerticalScroller:YES];
+    [_gridScrollView setHasHorizontalScroller:NO];
+    [_gridScrollView setAutohidesScrollers:YES];
+    [_gridScrollView setBorderType:NSBezelBorder];
+    _gridContentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 780, 500)];
+    [_gridScrollView setDocumentView:_gridContentView];
+    [_gridScrollView setHidden:YES];
+    [contentView addSubview:_gridScrollView];
     
-    // Load books
     [self refreshBooks];
 }
 
@@ -173,9 +224,161 @@
     if (_tableView) {
         [_tableView reloadData];
     }
+    if (_showingGrid && _gridContentView) {
+        [self rebuildGrid];
+    }
+}
+
+- (void)viewPopUpChanged:(id)sender {
+    NSInteger idx = [_viewPopUp indexOfSelectedItem];
+    if (idx == 1) {
+        [self switchToGridView];
+    } else {
+        [self switchToTableView];
+    }
+}
+
+- (void)switchToTableView {
+    _showingGrid = NO;
+    [_tableScrollView setHidden:NO];
+    [_gridScrollView setHidden:YES];
+    [self reloadData];
+}
+
+- (void)switchToGridView {
+    _showingGrid = YES;
+    [_tableScrollView setHidden:YES];
+    [_gridScrollView setHidden:NO];
+    [self rebuildGrid];
+}
+
+- (void)rebuildGrid {
+    [[_gridContentView subviews] makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    NSArray *books = _filteredBooks;
+    if (!books || [books count] == 0) {
+        [_gridContentView setFrameSize:NSMakeSize(780, 500)];
+        return;
+    }
+    NSInteger count = [books count];
+    NSInteger rows = (count + kGridColumns - 1) / kGridColumns;
+    CGFloat contentWidth = kGridColumns * kCardWidth + (kGridColumns + 1) * kCardSpacing;
+    CGFloat contentHeight = rows * kCardHeight + (rows + 1) * kCardSpacing;
+    [_gridContentView setFrameSize:NSMakeSize(contentWidth, contentHeight)];
+    for (NSInteger i = 0; i < count; i++) {
+        XLBook *book = [books objectAtIndex:i];
+        NSInteger col = i % kGridColumns;
+        NSInteger row = i / kGridColumns;
+        CGFloat x = kCardSpacing + col * (kCardWidth + kCardSpacing);
+        CGFloat y = contentHeight - (row + 1) * (kCardHeight + kCardSpacing) - kCardSpacing;
+        NSBox *card = [[NSBox alloc] initWithFrame:NSMakeRect(x, y, kCardWidth, kCardHeight)];
+        [card setBoxType:NSBoxPrimary];
+        [card setBorderType:NSLineBorder];
+        [card setTitlePosition:NSNoTitle];
+        [card setContentViewMargins:NSMakeSize(0, 0)];
+        CGFloat top = kCardHeight - 8;
+        NSImageView *coverView = [[NSImageView alloc] initWithFrame:NSMakeRect(20, top - 160, 120, 160)];
+        [coverView setImageScaling:NSImageScaleProportionallyDown];
+        if (book.coverPath && [[NSFileManager defaultManager] fileExistsAtPath:book.coverPath]) {
+            NSImage *img = [[NSImage alloc] initWithContentsOfFile:book.coverPath];
+            if (img) {
+                [coverView setImage:img];
+                [img release];
+            } else {
+                [coverView setImage:nil];
+            }
+        }
+        if (![coverView image]) {
+            NSTextField *placeholder = [[NSTextField alloc] initWithFrame:NSMakeRect(30, top - 140, 100, 24)];
+            [placeholder setStringValue:@"No cover"];
+            [placeholder setEditable:NO];
+            [placeholder setBordered:NO];
+            [placeholder setBackgroundColor:[NSColor clearColor]];
+            [placeholder setFont:[NSFont systemFontOfSize:11]];
+            [placeholder setTextColor:[NSColor grayColor]];
+            [card addSubview:placeholder];
+            [placeholder release];
+        }
+        [card addSubview:coverView];
+        [coverView release];
+        top -= 168;
+        NSTextField *titleLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(8, top, kCardWidth - 16, 36)];
+        [titleLabel setStringValue:book.title ?: @"Untitled"];
+        [titleLabel setEditable:NO];
+        [titleLabel setBordered:NO];
+        [titleLabel setBackgroundColor:[NSColor clearColor]];
+        [titleLabel setFont:[NSFont boldSystemFontOfSize:12]];
+        [titleLabel setLineBreakMode:NSLineBreakByTruncatingTail];
+        [titleLabel setAlignment:NSCenterTextAlignment];
+        [card addSubview:titleLabel];
+        [titleLabel release];
+        top -= 24;
+        NSTextField *authorLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(8, top, kCardWidth - 16, 20)];
+        [authorLabel setStringValue:book.author ?: @"—"];
+        [authorLabel setEditable:NO];
+        [authorLabel setBordered:NO];
+        [authorLabel setBackgroundColor:[NSColor clearColor]];
+        [authorLabel setFont:[NSFont systemFontOfSize:10]];
+        [authorLabel setLineBreakMode:NSLineBreakByTruncatingTail];
+        [authorLabel setAlignment:NSCenterTextAlignment];
+        [card addSubview:authorLabel];
+        [authorLabel release];
+        top -= 22;
+        NSTextField *progressLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(8, top, kCardWidth - 16, 18)];
+        [progressLabel setStringValue:[NSString stringWithFormat:@"%.0f%%", book.progress]];
+        [progressLabel setEditable:NO];
+        [progressLabel setBordered:NO];
+        [progressLabel setBackgroundColor:[NSColor clearColor]];
+        [progressLabel setFont:[NSFont systemFontOfSize:11]];
+        [progressLabel setAlignment:NSCenterTextAlignment];
+        [card addSubview:progressLabel];
+        [progressLabel release];
+        objc_setAssociatedObject(card, "book", book, OBJC_ASSOCIATION_ASSIGN);
+        NSButton *btn = [[NSButton alloc] initWithFrame:NSMakeRect(0, 0, kCardWidth, kCardHeight)];
+        [btn setTitle:@""];
+        [btn setBordered:NO];
+        [btn setTransparent:YES];
+        [btn setTarget:self];
+        [btn setAction:@selector(gridCardDoubleClicked:)];
+        objc_setAssociatedObject(btn, "book", book, OBJC_ASSOCIATION_ASSIGN);
+        [card addSubview:btn positioned:NSWindowAbove relativeTo:nil];
+        [btn release];
+        [_gridContentView addSubview:card];
+        [card release];
+    }
+}
+
+- (void)gridCardDoubleClicked:(id)sender {
+    XLBook *book = objc_getAssociatedObject(sender, "book");
+    if (book && _delegate && [_delegate respondsToSelector:@selector(libraryDidRequestBookDetail:)]) {
+        [_delegate libraryDidRequestBookDetail:book];
+    }
 }
 
 #pragma mark - Actions
+
+- (IBAction)vocabularyButtonClicked:(id)sender {
+    if (_delegate && [_delegate respondsToSelector:@selector(libraryDidRequestVocabulary)]) {
+        [_delegate libraryDidRequestVocabulary];
+    }
+}
+
+- (IBAction)reviewButtonClicked:(id)sender {
+    if (_delegate && [_delegate respondsToSelector:@selector(libraryDidRequestReview)]) {
+        [_delegate libraryDidRequestReview];
+    }
+}
+
+- (IBAction)settingsButtonClicked:(id)sender {
+    if (_delegate && [_delegate respondsToSelector:@selector(libraryDidRequestSettings)]) {
+        [_delegate libraryDidRequestSettings];
+    }
+}
+
+- (IBAction)statisticsButtonClicked:(id)sender {
+    if (_delegate && [_delegate respondsToSelector:@selector(libraryDidRequestStatistics)]) {
+        [_delegate libraryDidRequestStatistics];
+    }
+}
 
 - (IBAction)importButtonClicked:(id)sender {
     NSOpenPanel *openPanel = [NSOpenPanel openPanel];

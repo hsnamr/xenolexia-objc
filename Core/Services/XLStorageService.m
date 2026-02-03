@@ -7,6 +7,7 @@
 #import "XLStorageServiceDelegate.h"
 #import "../Models/Language.h"
 #import "../Models/Vocabulary.h"
+#import "../Models/Reader.h"
 #import "../../../SmallStep/SmallStep/Core/SSFileSystem.h"
 #include "sm2.h"
 
@@ -46,6 +47,11 @@ void sqlite3_free(void *p);
 - (XLVocabularyItem *)vocabularyItemFromStatement:(sqlite3_stmt *)stmt;
 - (NSString *)formatStringForBookFormat:(XLBookFormat)format;
 - (XLBookFormat)bookFormatForString:(NSString *)s;
+- (XLReaderTheme)themeForString:(NSString *)s;
+- (NSString *)stringForTheme:(XLReaderTheme)theme;
+- (XLTextAlign)textAlignForString:(NSString *)s;
+- (NSString *)stringForTextAlign:(XLTextAlign)align;
+- (XLReadingSession *)readingSessionFromStatement:(sqlite3_stmt *)stmt;
 
 @end
 
@@ -565,6 +571,49 @@ void sqlite3_free(void *p);
     return XLBookFormatEpub;
 }
 
+- (XLReaderTheme)themeForString:(NSString *)s {
+    NSString *lower = [s lowercaseString];
+    if ([lower isEqualToString:@"dark"]) return XLReaderThemeDark;
+    if ([lower isEqualToString:@"sepia"]) return XLReaderThemeSepia;
+    return XLReaderThemeLight;
+}
+
+- (NSString *)stringForTheme:(XLReaderTheme)theme {
+    switch (theme) {
+        case XLReaderThemeDark: return @"dark";
+        case XLReaderThemeSepia: return @"sepia";
+        default: return @"light";
+    }
+}
+
+- (XLTextAlign)textAlignForString:(NSString *)s {
+    if ([[s lowercaseString] isEqualToString:@"justify"]) return XLTextAlignJustify;
+    return XLTextAlignLeft;
+}
+
+- (NSString *)stringForTextAlign:(XLTextAlign)align {
+    return (align == XLTextAlignJustify) ? @"justify" : @"left";
+}
+
+- (XLReadingSession *)readingSessionFromStatement:(sqlite3_stmt *)stmt {
+    XLReadingSession *session = [[XLReadingSession alloc] init];
+    const char *cid = (const char *)sqlite3_column_text(stmt, 0);
+    session.sessionId = cid ? [NSString stringWithUTF8String:cid] : @"";
+    const char *bid = (const char *)sqlite3_column_text(stmt, 1);
+    session.bookId = bid ? [NSString stringWithUTF8String:bid] : @"";
+    long long startedMs = sqlite3_column_int64(stmt, 2);
+    session.startedAt = [NSDate dateWithTimeIntervalSince1970:startedMs / 1000.0];
+    long long endedMs = sqlite3_column_int64(stmt, 3);
+    session.endedAt = (endedMs > 0) ? [NSDate dateWithTimeIntervalSince1970:endedMs / 1000.0] : nil;
+    session.pagesRead = sqlite3_column_int(stmt, 4);
+    session.wordsRevealed = sqlite3_column_int(stmt, 5);
+    session.wordsSaved = sqlite3_column_int(stmt, 6);
+    if (session.endedAt && session.startedAt) {
+        session.duration = [session.endedAt timeIntervalSinceDate:session.startedAt];
+    }
+    return session;
+}
+
 - (XLVocabularyItem *)vocabularyItemFromStatement:(sqlite3_stmt *)stmt {
     XLVocabularyItem *item = [[XLVocabularyItem alloc] init];
     const char *cid = (const char *)sqlite3_column_text(stmt, 0);
@@ -692,6 +741,310 @@ void sqlite3_free(void *p);
     sqlite3_finalize(upStmt);
     if ([delegate respondsToSelector:@selector(storageService:didRecordReviewForItemId:withSuccess:error:)]) {
         [delegate storageService:self didRecordReviewForItemId:itemId withSuccess:(result == SQLITE_DONE) error:nil];
+    }
+}
+
+- (void)getPreferencesWithDelegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self getPreferencesWithDelegate:delegate]; }
+        return;
+    }
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    NSString *sql = @"SELECT key, value FROM preferences";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didGetPreferences:withError:)]) {
+            NSError *err = [NSError errorWithDomain:@"XLStorageService" code:1 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+            [delegate storageService:self didGetPreferences:nil withError:err];
+        }
+        return;
+    }
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *k = (const char *)sqlite3_column_text(stmt, 0);
+        const char *v = (const char *)sqlite3_column_text(stmt, 1);
+        if (k && v) {
+            [dict setObject:[NSString stringWithUTF8String:v] forKey:[NSString stringWithUTF8String:k]];
+        }
+    }
+    sqlite3_finalize(stmt);
+
+    NSString *(^get)(NSString *, NSString *) = ^(NSString *key, NSString *defaultValue) {
+        NSString *v = [dict objectForKey:key];
+        return v.length ? v : defaultValue;
+    };
+    XLUserPreferences *prefs = [[XLUserPreferences alloc] init];
+    prefs.defaultSourceLanguage = [XLLanguageInfo languageForCodeString:get(@"source_lang", @"en")];
+    prefs.defaultTargetLanguage = [XLLanguageInfo languageForCodeString:get(@"target_lang", @"es")];
+    prefs.defaultProficiencyLevel = [XLLanguageInfo proficiencyForCodeString:get(@"proficiency", @"beginner")];
+    prefs.defaultWordDensity = [get(@"word_density", @"0.3") doubleValue];
+    if (prefs.defaultWordDensity <= 0) prefs.defaultWordDensity = 0.3;
+    prefs.readerSettings = [[XLReaderSettings alloc] init];
+    prefs.readerSettings.theme = [self themeForString:get(@"reader_theme", @"light")];
+    prefs.readerSettings.fontFamily = get(@"reader_font_family", @"System");
+    prefs.readerSettings.fontSize = [get(@"reader_font_size", @"16") doubleValue];
+    if (prefs.readerSettings.fontSize <= 0) prefs.readerSettings.fontSize = 16;
+    prefs.readerSettings.lineHeight = [get(@"reader_line_height", @"1.6") doubleValue];
+    if (prefs.readerSettings.lineHeight <= 0) prefs.readerSettings.lineHeight = 1.6;
+    prefs.readerSettings.marginHorizontal = [get(@"reader_margin_horizontal", @"24") doubleValue];
+    prefs.readerSettings.marginVertical = [get(@"reader_margin_vertical", @"16") doubleValue];
+    prefs.readerSettings.textAlign = [self textAlignForString:get(@"reader_text_align", @"left")];
+    prefs.readerSettings.brightness = [get(@"reader_brightness", @"1") doubleValue];
+    if (prefs.readerSettings.brightness <= 0) prefs.readerSettings.brightness = 1.0;
+    prefs.hasCompletedOnboarding = [get(@"onboarding_done", @"false") isEqualToString:@"true"];
+    prefs.notificationsEnabled = [get(@"notifications_enabled", @"false") isEqualToString:@"true"];
+    prefs.dailyGoal = (NSInteger)[get(@"daily_goal", @"30") integerValue];
+    if (prefs.dailyGoal <= 0) prefs.dailyGoal = 30;
+    if ([delegate respondsToSelector:@selector(storageService:didGetPreferences:withError:)]) {
+        [delegate storageService:self didGetPreferences:prefs withError:nil];
+    }
+}
+
+- (void)savePreferences:(XLUserPreferences *)prefs delegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self savePreferences:prefs delegate:delegate]; }
+        return;
+    }
+    NSArray *pairs = @[
+        @[ @"source_lang", [XLLanguageInfo codeStringForLanguage:prefs.defaultSourceLanguage] ],
+        @[ @"target_lang", [XLLanguageInfo codeStringForLanguage:prefs.defaultTargetLanguage] ],
+        @[ @"proficiency", [XLLanguageInfo codeStringForProficiency:prefs.defaultProficiencyLevel] ],
+        @[ @"word_density", [NSString stringWithFormat:@"%.17g", prefs.defaultWordDensity] ],
+        @[ @"reader_theme", [self stringForTheme:prefs.readerSettings.theme] ],
+        @[ @"reader_font_family", prefs.readerSettings.fontFamily ?: @"System" ],
+        @[ @"reader_font_size", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.fontSize] ],
+        @[ @"reader_line_height", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.lineHeight] ],
+        @[ @"reader_margin_horizontal", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.marginHorizontal] ],
+        @[ @"reader_margin_vertical", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.marginVertical] ],
+        @[ @"reader_text_align", [self stringForTextAlign:prefs.readerSettings.textAlign] ],
+        @[ @"reader_brightness", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.brightness] ],
+        @[ @"onboarding_done", prefs.hasCompletedOnboarding ? @"true" : @"false" ],
+        @[ @"notifications_enabled", prefs.notificationsEnabled ? @"true" : @"false" ],
+        @[ @"daily_goal", [NSString stringWithFormat:@"%ld", (long)prefs.dailyGoal] ]
+    ];
+    NSString *sql = @"INSERT OR REPLACE INTO preferences (key, value) VALUES (?, ?)";
+    for (NSArray *kv in pairs) {
+        sqlite3_stmt *stmt = NULL;
+        if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+            if ([delegate respondsToSelector:@selector(storageService:didSavePreferencesWithSuccess:error:)]) {
+                NSError *err = [NSError errorWithDomain:@"XLStorageService" code:1 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+                [delegate storageService:self didSavePreferencesWithSuccess:NO error:err];
+            }
+            return;
+        }
+        sqlite3_bind_text(stmt, 1, [[kv objectAtIndex:0] UTF8String], -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 2, [[kv objectAtIndex:1] UTF8String], -1, SQLITE_TRANSIENT);
+        int result = sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+        if (result != SQLITE_DONE) {
+            if ([delegate respondsToSelector:@selector(storageService:didSavePreferencesWithSuccess:error:)]) {
+                NSError *err = [NSError errorWithDomain:@"XLStorageService" code:result userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+                [delegate storageService:self didSavePreferencesWithSuccess:NO error:err];
+            }
+            return;
+        }
+    }
+    if ([delegate respondsToSelector:@selector(storageService:didSavePreferencesWithSuccess:error:)]) {
+        [delegate storageService:self didSavePreferencesWithSuccess:YES error:nil];
+    }
+}
+
+- (void)startReadingSessionForBookId:(NSString *)bookId delegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self startReadingSessionForBookId:bookId delegate:delegate]; }
+        return;
+    }
+    NSString *sessionId = [[NSUUID UUID] UUIDString];
+    long long nowMs = (long long)([[NSDate date] timeIntervalSince1970] * 1000);
+    NSString *sql = @"INSERT INTO reading_sessions (id, book_id, started_at, ended_at, pages_read, words_revealed, words_saved) VALUES (?, ?, ?, NULL, 0, 0, 0)";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didStartReadingSessionWithId:error:)]) {
+            NSError *err = [NSError errorWithDomain:@"XLStorageService" code:1 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+            [delegate storageService:self didStartReadingSessionWithId:nil error:err];
+        }
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, [sessionId UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, [bookId UTF8String], -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 3, nowMs);
+    int result = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (result != SQLITE_DONE) {
+        if ([delegate respondsToSelector:@selector(storageService:didStartReadingSessionWithId:error:)]) {
+            NSError *err = [NSError errorWithDomain:@"XLStorageService" code:result userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+            [delegate storageService:self didStartReadingSessionWithId:nil error:err];
+        }
+        return;
+    }
+    if ([delegate respondsToSelector:@selector(storageService:didStartReadingSessionWithId:error:)]) {
+        [delegate storageService:self didStartReadingSessionWithId:sessionId error:nil];
+    }
+}
+
+- (void)endReadingSessionWithId:(NSString *)sessionId wordsRevealed:(NSInteger)wordsRevealed wordsSaved:(NSInteger)wordsSaved delegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self endReadingSessionWithId:sessionId wordsRevealed:wordsRevealed wordsSaved:wordsSaved delegate:delegate]; }
+        return;
+    }
+    long long nowMs = (long long)([[NSDate date] timeIntervalSince1970] * 1000);
+    NSString *sql = @"UPDATE reading_sessions SET ended_at = ?, words_revealed = ?, words_saved = ? WHERE id = ?";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didEndReadingSessionWithSuccess:error:)]) {
+            NSError *err = [NSError errorWithDomain:@"XLStorageService" code:1 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+            [delegate storageService:self didEndReadingSessionWithSuccess:NO error:err];
+        }
+        return;
+    }
+    sqlite3_bind_int64(stmt, 1, nowMs);
+    sqlite3_bind_int(stmt, 2, (int)wordsRevealed);
+    sqlite3_bind_int(stmt, 3, (int)wordsSaved);
+    sqlite3_bind_text(stmt, 4, [sessionId UTF8String], -1, SQLITE_TRANSIENT);
+    int result = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if ([delegate respondsToSelector:@selector(storageService:didEndReadingSessionWithSuccess:error:)]) {
+        [delegate storageService:self didEndReadingSessionWithSuccess:(result == SQLITE_DONE) error:nil];
+    }
+}
+
+- (void)getActiveSessionForBookId:(NSString *)bookId delegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self getActiveSessionForBookId:bookId delegate:delegate]; }
+        return;
+    }
+    NSString *sql = @"SELECT id, book_id, started_at, ended_at, pages_read, words_revealed, words_saved FROM reading_sessions WHERE book_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didGetActiveSession:withError:)]) {
+            NSError *err = [NSError errorWithDomain:@"XLStorageService" code:1 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+            [delegate storageService:self didGetActiveSession:nil withError:err];
+        }
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, [bookId UTF8String], -1, SQLITE_TRANSIENT);
+    XLReadingSession *session = nil;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        session = [self readingSessionFromStatement:stmt];
+    }
+    sqlite3_finalize(stmt);
+    if ([delegate respondsToSelector:@selector(storageService:didGetActiveSession:withError:)]) {
+        [delegate storageService:self didGetActiveSession:session withError:nil];
+    }
+}
+
+- (void)getReadingStatsWithDelegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self getReadingStatsWithDelegate:delegate]; }
+        return;
+    }
+    NSMutableSet *bookIds = [NSMutableSet set];
+    NSMutableArray *sessionDates = [NSMutableArray array];
+    NSInteger totalSeconds = 0;
+    NSInteger sessionCount = 0;
+    NSInteger wordsRevealedToday = 0;
+    NSInteger wordsSavedToday = 0;
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSDate *today = [NSDate date];
+    NSInteger todayYear = 0, todayMonth = 0, todayDay = 0;
+    [cal getEra:nil year:&todayYear month:&todayMonth day:&todayDay fromDate:today];
+
+    NSString *sql = @"SELECT book_id, started_at, ended_at, words_revealed, words_saved FROM reading_sessions WHERE ended_at IS NOT NULL";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didGetReadingStats:withError:)]) {
+            NSError *err = [NSError errorWithDomain:@"XLStorageService" code:1 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+            [delegate storageService:self didGetReadingStats:nil withError:err];
+        }
+        return;
+    }
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *bid = (const char *)sqlite3_column_text(stmt, 0);
+        NSString *bookId = bid ? [NSString stringWithUTF8String:bid] : @"";
+        long long startedMs = sqlite3_column_int64(stmt, 1);
+        long long endedMs = sqlite3_column_int64(stmt, 2);
+        NSInteger wr = sqlite3_column_int(stmt, 3);
+        NSInteger ws = sqlite3_column_int(stmt, 4);
+        [bookIds addObject:bookId];
+        totalSeconds += (NSInteger)((endedMs - startedMs) / 1000);
+        sessionCount++;
+        NSDate *endedDate = [NSDate dateWithTimeIntervalSince1970:endedMs / 1000.0];
+        [sessionDates addObject:endedDate];
+        NSDateComponents *comp = [cal components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay fromDate:endedDate];
+        if ([comp year] == todayYear && [comp month] == todayMonth && [comp day] == todayDay) {
+            wordsRevealedToday += wr;
+            wordsSavedToday += ws;
+        }
+    }
+    sqlite3_finalize(stmt);
+
+    NSInteger totalWordsLearned = 0;
+    NSString *countSql = @"SELECT COUNT(*) FROM vocabulary WHERE status = 'learned'";
+    sqlite3_stmt *countStmt = NULL;
+    if (sqlite3_prepare_v2(_database, [countSql UTF8String], -1, &countStmt, NULL) == SQLITE_OK) {
+        if (sqlite3_step(countStmt) == SQLITE_ROW) {
+            totalWordsLearned = sqlite3_column_int(countStmt, 0);
+        }
+        sqlite3_finalize(countStmt);
+    }
+
+    NSMutableSet *uniqueDates = [NSMutableSet set];
+    for (NSDate *d in sessionDates) {
+        NSDateComponents *c = [cal components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay fromDate:d];
+        NSDate *dayStart = [cal dateFromComponents:c];
+        [uniqueDates addObject:dayStart];
+    }
+    NSArray *sortedDates = [[uniqueDates allObjects] sortedArrayUsingSelector:@selector(compare:)];
+    NSSet *dateSet = [NSSet setWithArray:sortedDates];
+    NSInteger currentStreak = 0;
+    if ([sortedDates count] > 0) {
+        NSDate *mostRecent = [sortedDates lastObject];
+        NSDate *d = mostRecent;
+        while ([dateSet containsObject:d]) {
+            currentStreak++;
+            d = [cal dateByAddingUnit:NSCalendarUnitDay value:-1 toDate:d options:0];
+        }
+    }
+
+    NSInteger longestStreak = 1;
+    if ([sortedDates count] > 0) {
+        NSInteger run = 1;
+        for (NSInteger i = 1; i < (NSInteger)[sortedDates count]; i++) {
+            NSDate *prev = [sortedDates objectAtIndex:i - 1];
+            NSDate *cur = [sortedDates objectAtIndex:i];
+            NSInteger diff = (NSInteger)([cur timeIntervalSinceDate:prev] / (24 * 3600));
+            if (diff == 1) {
+                run++;
+            } else {
+                run = 1;
+            }
+            if (run > longestStreak) longestStreak = run;
+        }
+    }
+
+    NSTimeInterval avgDuration = (sessionCount > 0) ? (NSTimeInterval)totalSeconds / (NSTimeInterval)sessionCount : 0;
+    XLReadingStats *stats = [[XLReadingStats alloc] init];
+    stats.totalBooksRead = [bookIds count];
+    stats.totalReadingTime = totalSeconds;
+    stats.totalWordsLearned = totalWordsLearned;
+    stats.currentStreak = currentStreak;
+    stats.longestStreak = longestStreak;
+    stats.averageSessionDuration = avgDuration;
+    stats.wordsRevealedToday = wordsRevealedToday;
+    stats.wordsSavedToday = wordsSavedToday;
+    if ([delegate respondsToSelector:@selector(storageService:didGetReadingStats:withError:)]) {
+        [delegate storageService:self didGetReadingStats:stats withError:nil];
     }
 }
 

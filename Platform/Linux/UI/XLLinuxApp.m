@@ -27,6 +27,11 @@
         _libraryController = nil;
         _bookDetailController = nil;
         _readerController = nil;
+        _vocabularyController = nil;
+        _reviewController = nil;
+        _settingsController = nil;
+        _onboardingController = nil;
+        _statisticsController = nil;
     }
     return self;
 }
@@ -37,14 +42,8 @@
     NSApplication *app = [NSApplication sharedApplication];
     [app setDelegate:self];
     
-    // Initialize database
     XLStorageService *storage = [XLStorageService sharedService];
     [storage initializeDatabaseWithDelegate:self];
-    
-    // Create and show main window
-    _libraryController = [[XLLibraryWindowController alloc] init];
-    [_libraryController setDelegate:self];
-    [_libraryController showWindow:nil];
     
     [app run];
     
@@ -70,6 +69,68 @@
     _bookDetailController = [[XLBookDetailWindowController alloc] initWithBook:book];
     [_bookDetailController setDelegate:self];
     [_bookDetailController showWindow:nil];
+}
+
+- (void)libraryDidRequestVocabulary {
+    if (!_vocabularyController) {
+        _vocabularyController = [[XLVocabularyWindowController alloc] init];
+        [_vocabularyController setDelegate:self];
+    }
+    [_vocabularyController showWindow:nil];
+}
+
+- (void)libraryDidRequestReview {
+    if (!_reviewController) {
+        _reviewController = [[XLReviewWindowController alloc] init];
+        [_reviewController setDelegate:self];
+    }
+    [_reviewController showWindow:nil];
+}
+
+- (void)vocabularyWindowDidClose {
+    [_vocabularyController release];
+    _vocabularyController = nil;
+}
+
+- (void)reviewWindowDidClose {
+    [_reviewController release];
+    _reviewController = nil;
+}
+
+- (void)libraryDidRequestSettings {
+    if (!_settingsController) {
+        _settingsController = [[XLSettingsWindowController alloc] init];
+        [_settingsController setDelegate:self];
+    }
+    [_settingsController showWindow:nil];
+}
+
+- (void)settingsWindowDidClose {
+    [_settingsController release];
+    _settingsController = nil;
+}
+
+- (void)libraryDidRequestStatistics {
+    if (!_statisticsController) {
+        _statisticsController = [[XLStatisticsWindowController alloc] init];
+        [_statisticsController setDelegate:self];
+    }
+    [_statisticsController showWindow:nil];
+}
+
+- (void)statisticsWindowDidClose {
+    [_statisticsController release];
+    _statisticsController = nil;
+}
+
+- (void)onboardingDidComplete {
+    [_onboardingController release];
+    _onboardingController = nil;
+    if (!_libraryController) {
+        _libraryController = [[XLLibraryWindowController alloc] init];
+        [_libraryController setDelegate:self];
+        [_libraryController showWindow:nil];
+    }
 }
 
 #pragma mark - XLBookDetailWindowDelegate
@@ -105,6 +166,26 @@
 - (void)storageService:(id)service didInitializeDatabaseWithSuccess:(BOOL)success error:(NSError *)error {
     if (!success) {
         NSLog(@"Failed to initialize database: %@", error);
+        return;
+    }
+    [service getPreferencesWithDelegate:self];
+}
+
+- (void)storageService:(id)service didGetPreferences:(XLUserPreferences *)prefs withError:(NSError *)error {
+    if (error || !prefs) {
+        _libraryController = [[XLLibraryWindowController alloc] init];
+        [_libraryController setDelegate:self];
+        [_libraryController showWindow:nil];
+        return;
+    }
+    if (prefs.hasCompletedOnboarding) {
+        _libraryController = [[XLLibraryWindowController alloc] init];
+        [_libraryController setDelegate:self];
+        [_libraryController showWindow:nil];
+    } else {
+        _onboardingController = [[XLOnboardingWindowController alloc] init];
+        [_onboardingController setDelegate:self];
+        [_onboardingController showWindow:nil];
     }
 }
 
@@ -132,6 +213,7 @@
 
 - (void)readerDidClose {
     _readerController = nil;
+    [_libraryController refreshBooks];
 }
 
 - (void)readerDidRequestSaveWord:(XLForeignWordData *)wordData {
@@ -141,7 +223,7 @@
     
     // Create vocabulary item from word data
     XLVocabularyItem *item = [[XLVocabularyItem alloc] init];
-    item.itemId = [[NSUUID UUID] UUIDString];
+    item.vocabularyId = [[NSUUID UUID] UUIDString];
     item.sourceWord = wordData.originalWord;
     item.targetWord = wordData.wordEntry.targetWord;
     item.sourceLanguage = wordData.wordEntry.sourceLanguage;

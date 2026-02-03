@@ -7,6 +7,7 @@
 #import <Foundation/Foundation.h>
 #import "../Models/Book.h"
 #import "../Models/Vocabulary.h"
+#import "../Models/Reader.h"
 #import "XLStorageServiceDelegate.h"
 
 /// Storage service protocol
@@ -29,6 +30,18 @@
 - (void)getVocabularyDueForReviewWithLimit:(NSInteger)limit delegate:(id<XLStorageServiceDelegate>)delegate;
 /// Spec: record one SM-2 review step (quality 0-5); formula matches xenolexia-shared-c/sm2.c
 - (void)recordReviewForItemId:(NSString *)itemId quality:(NSInteger)quality delegate:(id<XLStorageServiceDelegate>)delegate;
+
+// Preferences (Phase 0)
+- (void)getPreferencesWithDelegate:(id<XLStorageServiceDelegate>)delegate;
+- (void)savePreferences:(XLUserPreferences *)prefs delegate:(id<XLStorageServiceDelegate>)delegate;
+
+// Reading sessions (Phase 0)
+- (void)startReadingSessionForBookId:(NSString *)bookId delegate:(id<XLStorageServiceDelegate>)delegate;
+- (void)endReadingSessionWithId:(NSString *)sessionId wordsRevealed:(NSInteger)wordsRevealed wordsSaved:(NSInteger)wordsSaved delegate:(id<XLStorageServiceDelegate>)delegate;
+- (void)getActiveSessionForBookId:(NSString *)bookId delegate:(id<XLStorageServiceDelegate>)delegate;
+
+// Statistics (Phase 0)
+- (void)getReadingStatsWithDelegate:(id<XLStorageServiceDelegate>)delegate;
 
 @end
 

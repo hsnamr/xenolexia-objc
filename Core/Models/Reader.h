@@ -7,6 +7,7 @@
 #import <Foundation/Foundation.h>
 #import "Book.h"
 #import "Vocabulary.h"
+#import "Language.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -36,6 +37,22 @@ typedef NS_ENUM(NSInteger, XLTextAlign) {
 @property (nonatomic) double brightness; // 0.0 - 1.0
 
 + (instancetype)defaultSettings;
+
+@end
+
+/// User preferences (matches C# UserPreferences; stored in preferences table)
+@interface XLUserPreferences : NSObject
+
+@property (nonatomic) XLLanguage defaultSourceLanguage;
+@property (nonatomic) XLLanguage defaultTargetLanguage;
+@property (nonatomic) XLProficiencyLevel defaultProficiencyLevel;
+@property (nonatomic) double defaultWordDensity;
+@property (nonatomic, retain) XLReaderSettings *readerSettings;
+@property (nonatomic) BOOL hasCompletedOnboarding;
+@property (nonatomic) BOOL notificationsEnabled;
+@property (nonatomic) NSInteger dailyGoal; // minutes
+
++ (instancetype)defaultPreferences;
 
 @end
 

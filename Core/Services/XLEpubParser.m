@@ -106,6 +106,9 @@
 
     xenolexia_epub_close(epub);
 
+    // Phase 7.1: Use TOC titles for chapters when spine href matches TOC href
+    [self applyTocTitlesToChapters:chapters toc:toc];
+
     XLParsedBook *parsedBook = [[XLParsedBook alloc] init];
     parsedBook.metadata = metadata;
     parsedBook.chapters = chapters;
@@ -156,6 +159,35 @@
 
 + (NSString *)parseChapterContent:(NSData *)chapterData error:(NSError **)error {
     return [self stringFromChapterData:chapterData];
+}
+
+/** Normalize href for comparison (strip fragment, leading ./). */
++ (NSString *)normalizeHref:(NSString *)href {
+    if (!href || [href length] == 0) return @"";
+    NSString *s = href;
+    if ([s hasPrefix:@"./"]) s = [s substringFromIndex:2];
+    NSRange frag = [s rangeOfString:@"#"];
+    if (frag.location != NSNotFound) s = [s substringToIndex:frag.location];
+    return [s stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+}
+
+/** Apply TOC titles to chapters when spine href matches TOC href (Phase 7.1). */
++ (void)applyTocTitlesToChapters:(NSMutableArray *)chapters toc:(NSArray *)toc {
+    if (!chapters || !toc || [toc count] == 0) return;
+    for (XLChapter *chapter in chapters) {
+        NSString *chapterNorm = [self normalizeHref:chapter.href];
+        if ([chapterNorm length] == 0) continue;
+        for (XLTOCItem *item in toc) {
+            NSString *tocNorm = [self normalizeHref:item.href];
+            if ([tocNorm length] > 0 && ([chapterNorm isEqualToString:tocNorm] ||
+                [chapterNorm hasSuffix:tocNorm] || [tocNorm hasSuffix:chapterNorm])) {
+                if ([item.title length] > 0) {
+                    chapter.title = item.title;
+                }
+                break;
+            }
+        }
+    }
 }
 
 /** Extract readable text/HTML from chapter bytes (UTF-8). */
