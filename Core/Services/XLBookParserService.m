@@ -6,6 +6,7 @@
 #import "XLBookParserService.h"
 #import "XLEpubParser.h"
 #import "XLNativeParsers.h"
+#import "../../../SmallStep/SmallStep/Core/SSFileSystem.h"
 
 @implementation XLBookParserService
 
@@ -30,8 +31,8 @@
         return;
     }
     
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    if (![fileManager fileExistsAtPath:filePath]) {
+    SSFileSystem *fileSystem = [SSFileSystem sharedFileSystem];
+    if (![fileSystem fileExistsAtPath:filePath]) {
         if (completion) {
             NSDictionary *userInfo = [NSDictionary dictionaryWithObject:@"File does not exist"
                                                                   forKey:NSLocalizedDescriptionKey];

@@ -1,8 +1,12 @@
 # GNUmakefile for Xenolexia Linux App
+# SmallStep: use ../../../SmallStep (Xenolexia/SmallStep). Create symlink: from Xenolexia repo: ln -sn ../SmallStep SmallStep
 
 include $(GNUSTEP_MAKEFILES)/common.make
 
 APP_NAME = Xenolexia
+
+# Path to SmallStep from Platform/Linux (Xenolexia/SmallStep or sibling via symlink)
+SMALLSTEP_DIR = ../../../SmallStep
 
 Xenolexia_OBJC_FILES = \
 	main.m \
@@ -28,9 +32,11 @@ Xenolexia_OBJC_FILES = \
 	../../Core/Services/XLStorageService.m \
 	../../Core/Services/XLStorageServiceBlockHelper.m \
 	../../Core/Services/XLExportService.m \
-	../../../SmallStep/SmallStep/Core/SSPlatform.m \
-	../../../SmallStep/SmallStep/Core/SSFileSystem.m \
-	../../../SmallStep/SmallStep/Platform/Linux/SSLinuxPlatform.m \
+	$(SMALLSTEP_DIR)/SmallStep/Core/SSPlatform.m \
+	$(SMALLSTEP_DIR)/SmallStep/Core/SSFileSystem.m \
+	$(SMALLSTEP_DIR)/SmallStep/Core/SSHostApplication.m \
+	$(SMALLSTEP_DIR)/SmallStep/Core/SSMainMenu.m \
+	$(SMALLSTEP_DIR)/SmallStep/Platform/Linux/SSLinuxPlatform.m \
 	../../DictionaryService.m \
 	../../DownloadService.m \
 	../../TranslationService.m
@@ -41,8 +47,8 @@ Xenolexia_INCLUDE_DIRS = \
 	-IUI/Screens \
 	-I../../Core/Models \
 	-I../../Core/Services \
-	-I../../SmallStep/SmallStep/Core \
-	-I../../SmallStep/SmallStep/Platform/Linux \
+	-I$(SMALLSTEP_DIR)/SmallStep/Core \
+	-I$(SMALLSTEP_DIR)/SmallStep/Platform/Linux \
 	-I../../ \
 	-I/usr/include \
 	-I/usr/include/libxml2

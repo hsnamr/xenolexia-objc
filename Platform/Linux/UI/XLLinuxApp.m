@@ -10,6 +10,8 @@
 #import "../../../Core/Services/XLStorageService.h"
 #import "../../../Core/Services/XLManager.h"
 #import "../../../Core/Models/Vocabulary.h"
+#import "../../../SmallStep/SmallStep/Core/SSHostApplication.h"
+#import "../../../SmallStep/SmallStep/Core/SSMainMenu.h"
 
 @implementation XLLinuxApp
 
@@ -38,15 +40,12 @@
 
 - (void)run {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    
-    NSApplication *app = [NSApplication sharedApplication];
-    [app setDelegate:self];
-    
+
     XLStorageService *storage = [XLStorageService sharedService];
     [storage initializeDatabaseWithDelegate:self];
-    
-    [app run];
-    
+
+    [SSHostApplication runWithDelegate:self];
+
     [pool drain];
 }
 
@@ -254,56 +253,26 @@
     [item release];
 }
 
-- (void)applicationWillFinishLaunching:(NSNotification *)notification {
+- (void)applicationWillFinishLaunching {
     // Initialize app
 }
 
-- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+- (void)applicationDidFinishLaunching {
     [self setupMainMenu];
     [self setupTrayIcon];
 }
 
 - (void)setupMainMenu {
-    NSMenu *mainMenu = [[NSMenu alloc] init];
-    NSMenuItem *appItem = [[NSMenuItem alloc] init];
-    [appItem setTitle:@"Xenolexia"];
-    NSMenu *appMenu = [[NSMenu alloc] initWithTitle:@"Xenolexia"];
-    NSMenuItem *libItem = [[NSMenuItem alloc] initWithTitle:@"Library" action:@selector(showLibrary:) keyEquivalent:@"1"];
-    [libItem setKeyEquivalentModifierMask:NSControlKeyMask];
-    [libItem setTarget:self];
-    [appMenu addItem:libItem];
-    [libItem release];
-    NSMenuItem *vocItem = [[NSMenuItem alloc] initWithTitle:@"Vocabulary" action:@selector(showVocabulary:) keyEquivalent:@"2"];
-    [vocItem setKeyEquivalentModifierMask:NSControlKeyMask];
-    [vocItem setTarget:self];
-    [appMenu addItem:vocItem];
-    [vocItem release];
-    NSMenuItem *revItem = [[NSMenuItem alloc] initWithTitle:@"Review" action:@selector(showReview:) keyEquivalent:@"3"];
-    [revItem setKeyEquivalentModifierMask:NSControlKeyMask];
-    [revItem setTarget:self];
-    [appMenu addItem:revItem];
-    [revItem release];
-    NSMenuItem *setItem = [[NSMenuItem alloc] initWithTitle:@"Settings" action:@selector(showSettings:) keyEquivalent:@"4"];
-    [setItem setKeyEquivalentModifierMask:NSControlKeyMask];
-    [setItem setTarget:self];
-    [appMenu addItem:setItem];
-    [setItem release];
-    NSMenuItem *statsItem = [[NSMenuItem alloc] initWithTitle:@"Statistics" action:@selector(showStatistics:) keyEquivalent:@"5"];
-    [statsItem setKeyEquivalentModifierMask:NSControlKeyMask];
-    [statsItem setTarget:self];
-    [appMenu addItem:statsItem];
-    [statsItem release];
-    [appMenu addItem:[NSMenuItem separatorItem]];
-    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Xenolexia" action:@selector(terminate:) keyEquivalent:@"q"];
-    [quitItem setTarget:NSApp];
-    [appMenu addItem:quitItem];
-    [quitItem release];
-    [appItem setSubmenu:appMenu];
-    [appMenu release];
-    [mainMenu addItem:appItem];
-    [appItem release];
-    [NSApp setMainMenu:mainMenu];
-    [mainMenu release];
+    SSMainMenu *mainMenu = [[[SSMainMenu alloc] init] autorelease];
+    [mainMenu setAppName:@"Xenolexia"];
+    NSArray *items = @[
+        [SSMainMenuItem itemWithTitle:@"Library" action:@selector(showLibrary:) keyEquivalent:@"1" modifierMask:NSControlKeyMask target:self],
+        [SSMainMenuItem itemWithTitle:@"Vocabulary" action:@selector(showVocabulary:) keyEquivalent:@"2" modifierMask:NSControlKeyMask target:self],
+        [SSMainMenuItem itemWithTitle:@"Review" action:@selector(showReview:) keyEquivalent:@"3" modifierMask:NSControlKeyMask target:self],
+        [SSMainMenuItem itemWithTitle:@"Settings" action:@selector(showSettings:) keyEquivalent:@"4" modifierMask:NSControlKeyMask target:self],
+        [SSMainMenuItem itemWithTitle:@"Statistics" action:@selector(showStatistics:) keyEquivalent:@"5" modifierMask:NSControlKeyMask target:self],
+    ];
+    [mainMenu buildMenuWithItems:items quitTitle:@"Quit Xenolexia" quitKeyEquivalent:@"q"];
 }
 
 - (void)showLibrary:(id)sender {
@@ -373,14 +342,14 @@
     [NSApp terminate:nil];
 }
 
-- (void)applicationWillTerminate:(NSNotification *)notification {
-    (void)notification;
+- (void)applicationWillTerminate {
     if (_libraryController && [_libraryController respondsToSelector:@selector(saveWindowState)]) {
         [_libraryController performSelector:@selector(saveWindowState)];
     }
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(id)sender {
+    (void)sender;
     return YES;
 }
 

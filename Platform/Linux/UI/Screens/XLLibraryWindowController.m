@@ -6,6 +6,7 @@
 #import "XLLibraryWindowController.h"
 #import "../../../../Core/Services/XLStorageService.h"
 #import "../../../../Core/Services/XLManager.h"
+#import "../../../../SmallStep/SmallStep/Core/SSFileSystem.h"
 #import <objc/runtime.h>
 
 static const CGFloat kCardWidth = 160;
@@ -14,10 +15,11 @@ static const CGFloat kCardSpacing = 16;
 static const NSInteger kGridColumns = 4;
 
 static NSString *libraryWindowStatePath(void) {
-    NSString *home = NSHomeDirectory();
-    NSString *dir = [home stringByAppendingPathComponent:@".xenolexia"];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:dir]) {
-        [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:NULL];
+    SSFileSystem *fs = [SSFileSystem sharedFileSystem];
+    NSString *appSupport = [fs applicationSupportDirectory];
+    NSString *dir = [appSupport stringByAppendingPathComponent:@"xenolexia"];
+    if (![fs fileExistsAtPath:dir]) {
+        [fs createDirectoryAtPath:dir error:NULL];
     }
     return [dir stringByAppendingPathComponent:@"window_state.plist"];
 }
@@ -351,7 +353,7 @@ static NSString *libraryWindowStatePath(void) {
         CGFloat top = kCardHeight - 8;
         NSImageView *coverView = [[NSImageView alloc] initWithFrame:NSMakeRect(20, top - 160, 120, 160)];
         [coverView setImageScaling:NSImageScaleProportionallyDown];
-        if (book.coverPath && [[NSFileManager defaultManager] fileExistsAtPath:book.coverPath]) {
+        if (book.coverPath && [[SSFileSystem sharedFileSystem] fileExistsAtPath:book.coverPath]) {
             NSImage *img = [[NSImage alloc] initWithContentsOfFile:book.coverPath];
             if (img) {
                 [coverView setImage:img];
