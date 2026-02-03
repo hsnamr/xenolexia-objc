@@ -54,6 +54,8 @@
         _foreignWordRanges = [[NSMutableArray alloc] init];
         _foreignWordDataMap = [[NSMutableDictionary alloc] init];
         _settings = [[XLReaderSettings defaultSettings] retain];
+        _userPrefs = nil;
+        _isInitialPrefsLoad = YES;
     }
     return self;
 }
@@ -70,6 +72,7 @@
     [_foreignWordDataMap release];
     [_settings release];
     [_sessionId release];
+    [_userPrefs release];
     [super dealloc];
 }
 
@@ -180,6 +183,8 @@
         
         _chapters = [parsedBook.chapters retain];
         [self updateChapterMenu];
+        /* Start reading session (Phase 1.5) before loading first chapter */
+        [[XLStorageService sharedService] startReadingSessionForBookId:_book.bookId delegate:self];
         [self loadCurrentChapter];
     }];
 }
@@ -213,6 +218,13 @@
     
     // Update book's current chapter index
     _book.currentChapter = _currentChapterIndex;
+    
+    // Apply language pair, proficiency, and density from preferences (Phase 4)
+    if (_userPrefs) {
+        _book.languagePair = [XLLanguagePair pairWithSource:_userPrefs.defaultSourceLanguage target:_userPrefs.defaultTargetLanguage];
+        _book.proficiencyLevel = _userPrefs.defaultProficiencyLevel;
+        _book.wordDensity = _userPrefs.defaultWordDensity;
+    }
     
     // Process the chapter with translation engine
     XLManager *manager = [XLManager sharedManager];
@@ -360,8 +372,13 @@
 }
 
 - (IBAction)settingsClicked:(id)sender {
-    // TODO: Open settings panel
-    NSLog(@"Settings clicked - to be implemented");
+    if ([self.delegate respondsToSelector:@selector(readerDidRequestSettings)]) {
+        [self.delegate readerDidRequestSettings];
+    }
+}
+
+- (void)reloadPreferences {
+    [[XLStorageService sharedService] getPreferencesWithDelegate:self];
 }
 
 #pragma mark - NSTextViewDelegate
@@ -381,29 +398,54 @@
     }
 }
 
+- (NSString *)extractContextAroundWord:(XLForeignWordData *)wordData {
+    if (!_currentChapter || !_currentChapter.content || wordData.startIndex < 0 || wordData.endIndex > (NSInteger)[_currentChapter.content length]) {
+        return nil;
+    }
+    NSString *content = _currentChapter.content;
+    NSInteger start = wordData.startIndex;
+    NSInteger end = wordData.endIndex;
+    NSInteger contextLen = 80;
+    NSInteger from = (NSInteger)start - contextLen;
+    if (from < 0) from = 0;
+    NSInteger to = (NSInteger)end + contextLen;
+    if (to > (NSInteger)[content length]) to = [content length];
+    if (from >= to) return nil;
+    return [content substringWithRange:NSMakeRange((NSUInteger)from, (NSUInteger)(to - from))];
+}
+
 - (void)showTranslationPopupForWord:(XLForeignWordData *)wordData atLocation:(NSUInteger)location {
-    // TODO: Implement translation popup
-    // For now, just show an alert
-    NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:wordData.originalWord ? wordData.originalWord : @"Word"];
+    _wordsRevealed++;
+    
+    NSString *original = wordData.originalWord ? wordData.originalWord : @"Word";
     NSString *translation = @"Translation not available";
     if (wordData.wordEntry && wordData.wordEntry.targetWord) {
         translation = wordData.wordEntry.targetWord;
     }
-    [alert setInformativeText:translation];
+    NSString *context = [self extractContextAroundWord:wordData];
+    NSMutableString *informative = [NSMutableString stringWithString:translation];
+    if (context && [context length] > 0) {
+        [informative appendString:@"\n\nContext: "];
+        [informative appendString:context];
+    }
+    
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:original];
+    [alert setInformativeText:informative];
     [alert addButtonWithTitle:@"Save to Vocabulary"];
     [alert addButtonWithTitle:@"I Knew This"];
     [alert addButtonWithTitle:@"Close"];
     
     NSInteger result = [alert runModal];
     if (result == NSAlertFirstButtonReturn) {
-        // Save to vocabulary
-        if ([_delegate respondsToSelector:@selector(readerDidRequestSaveWord:)]) {
-            [_delegate readerDidRequestSaveWord:wordData];
+        _wordsSaved++;
+        if ([self.delegate respondsToSelector:@selector(readerDidRequestSaveWord:contextSentence:)]) {
+            [self.delegate readerDidRequestSaveWord:wordData contextSentence:context];
+        } else if ([self.delegate respondsToSelector:@selector(readerDidRequestSaveWord:)]) {
+            [self.delegate readerDidRequestSaveWord:wordData];
         }
     } else if (result == NSAlertSecondButtonReturn) {
-        // Mark as known - could update word entry status
-        NSLog(@"Word marked as known");
+        /* Mark as known - no backend change for now */
     }
 }
 
@@ -427,28 +469,44 @@
     if (_sessionId) {
         [[XLStorageService sharedService] endReadingSessionWithId:_sessionId wordsRevealed:_wordsRevealed wordsSaved:_wordsSaved delegate:self];
     }
-    if ([_delegate respondsToSelector:@selector(readerDidClose)]) {
-        [_delegate readerDidClose];
+    if ([self.delegate respondsToSelector:@selector(readerDidClose)]) {
+        [self.delegate readerDidClose];
     }
+}
+
+#pragma mark - XLStorageServiceDelegate (save book callback)
+
+- (void)storageService:(id)service didSaveBook:(XLBook *)book withSuccess:(BOOL)success error:(NSError *)error {
+    /* Progress saved after chapter change / on close */
 }
 
 #pragma mark - XLStorageServiceDelegate (Phase 1)
 
 - (void)storageService:(id)service didGetPreferences:(XLUserPreferences *)prefs withError:(NSError *)error {
-    if (error || !prefs || !prefs.readerSettings) {
-        [self loadBookChapters];
+    if (error || !prefs) {
+        if (_isInitialPrefsLoad) {
+            _isInitialPrefsLoad = NO;
+            [self loadBookChapters];
+        }
         return;
     }
-    _settings.theme = prefs.readerSettings.theme;
-    _settings.fontFamily = prefs.readerSettings.fontFamily ? [prefs.readerSettings.fontFamily copy] : @"System";
-    _settings.fontSize = prefs.readerSettings.fontSize;
-    _settings.lineHeight = prefs.readerSettings.lineHeight;
-    _settings.marginHorizontal = prefs.readerSettings.marginHorizontal;
-    _settings.marginVertical = prefs.readerSettings.marginVertical;
-    _settings.textAlign = prefs.readerSettings.textAlign;
-    _settings.brightness = prefs.readerSettings.brightness;
+    [_userPrefs release];
+    _userPrefs = [prefs retain];
+    if (prefs.readerSettings) {
+        _settings.theme = prefs.readerSettings.theme;
+        _settings.fontFamily = prefs.readerSettings.fontFamily ? [prefs.readerSettings.fontFamily copy] : @"System";
+        _settings.fontSize = prefs.readerSettings.fontSize;
+        _settings.lineHeight = prefs.readerSettings.lineHeight;
+        _settings.marginHorizontal = prefs.readerSettings.marginHorizontal;
+        _settings.marginVertical = prefs.readerSettings.marginVertical;
+        _settings.textAlign = prefs.readerSettings.textAlign;
+        _settings.brightness = prefs.readerSettings.brightness;
+    }
     [self applyReaderSettings];
-    [self loadBookChapters];
+    if (_isInitialPrefsLoad) {
+        _isInitialPrefsLoad = NO;
+        [self loadBookChapters];
+    }
 }
 
 - (void)storageService:(id)service didStartReadingSessionWithId:(NSString *)sessionId error:(NSError *)error {

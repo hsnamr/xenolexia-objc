@@ -808,19 +808,20 @@ void sqlite3_free(void *p);
         if (_database) { [self savePreferences:prefs delegate:delegate]; }
         return;
     }
+    XLReaderSettings *readerSettings = prefs.readerSettings ?: [XLReaderSettings defaultSettings];
     NSArray *pairs = @[
         @[ @"source_lang", [XLLanguageInfo codeStringForLanguage:prefs.defaultSourceLanguage] ],
         @[ @"target_lang", [XLLanguageInfo codeStringForLanguage:prefs.defaultTargetLanguage] ],
         @[ @"proficiency", [XLLanguageInfo codeStringForProficiency:prefs.defaultProficiencyLevel] ],
         @[ @"word_density", [NSString stringWithFormat:@"%.17g", prefs.defaultWordDensity] ],
-        @[ @"reader_theme", [self stringForTheme:prefs.readerSettings.theme] ],
-        @[ @"reader_font_family", prefs.readerSettings.fontFamily ?: @"System" ],
-        @[ @"reader_font_size", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.fontSize] ],
-        @[ @"reader_line_height", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.lineHeight] ],
-        @[ @"reader_margin_horizontal", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.marginHorizontal] ],
-        @[ @"reader_margin_vertical", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.marginVertical] ],
-        @[ @"reader_text_align", [self stringForTextAlign:prefs.readerSettings.textAlign] ],
-        @[ @"reader_brightness", [NSString stringWithFormat:@"%.17g", prefs.readerSettings.brightness] ],
+        @[ @"reader_theme", [self stringForTheme:readerSettings.theme] ],
+        @[ @"reader_font_family", readerSettings.fontFamily ?: @"System" ],
+        @[ @"reader_font_size", [NSString stringWithFormat:@"%.17g", readerSettings.fontSize] ],
+        @[ @"reader_line_height", [NSString stringWithFormat:@"%.17g", readerSettings.lineHeight] ],
+        @[ @"reader_margin_horizontal", [NSString stringWithFormat:@"%.17g", readerSettings.marginHorizontal] ],
+        @[ @"reader_margin_vertical", [NSString stringWithFormat:@"%.17g", readerSettings.marginVertical] ],
+        @[ @"reader_text_align", [self stringForTextAlign:readerSettings.textAlign] ],
+        @[ @"reader_brightness", [NSString stringWithFormat:@"%.17g", readerSettings.brightness] ],
         @[ @"onboarding_done", prefs.hasCompletedOnboarding ? @"true" : @"false" ],
         @[ @"notifications_enabled", prefs.notificationsEnabled ? @"true" : @"false" ],
         @[ @"daily_goal", [NSString stringWithFormat:@"%ld", (long)prefs.dailyGoal] ]
@@ -849,6 +850,52 @@ void sqlite3_free(void *p);
     }
     if ([delegate respondsToSelector:@selector(storageService:didSavePreferencesWithSuccess:error:)]) {
         [delegate storageService:self didSavePreferencesWithSuccess:YES error:nil];
+    }
+}
+
+- (void)getLibraryViewModeWithDelegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self getLibraryViewModeWithDelegate:delegate]; }
+        return;
+    }
+    NSString *sql = @"SELECT value FROM preferences WHERE key = 'library_view_mode'";
+    sqlite3_stmt *stmt = NULL;
+    BOOL grid = NO;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *v = (const char *)sqlite3_column_text(stmt, 0);
+        if (v && [[NSString stringWithUTF8String:v] isEqualToString:@"grid"]) grid = YES;
+        sqlite3_finalize(stmt);
+    } else {
+        if (stmt) sqlite3_finalize(stmt);
+    }
+    if ([delegate respondsToSelector:@selector(storageService:didGetLibraryViewMode:error:)]) {
+        [delegate storageService:self didGetLibraryViewMode:grid error:nil];
+    }
+}
+
+- (void)saveLibraryViewMode:(BOOL)grid delegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self saveLibraryViewMode:grid delegate:delegate]; }
+        return;
+    }
+    NSString *sql = @"INSERT OR REPLACE INTO preferences (key, value) VALUES ('library_view_mode', ?)";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didSaveLibraryViewModeWithSuccess:error:)]) {
+            NSError *err = [NSError errorWithDomain:@"XLStorageService" code:1 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+            [delegate storageService:self didSaveLibraryViewModeWithSuccess:NO error:err];
+        }
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, grid ? "grid" : "list", -1, SQLITE_TRANSIENT);
+    int result = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if ([delegate respondsToSelector:@selector(storageService:didSaveLibraryViewModeWithSuccess:error:)]) {
+        [delegate storageService:self didSaveLibraryViewModeWithSuccess:(result == SQLITE_DONE) error:nil];
     }
 }
 
@@ -1045,6 +1092,57 @@ void sqlite3_free(void *p);
     stats.wordsSavedToday = wordsSavedToday;
     if ([delegate respondsToSelector:@selector(storageService:didGetReadingStats:withError:)]) {
         [delegate storageService:self didGetReadingStats:stats withError:nil];
+    }
+}
+
+- (void)getWordsRevealedByDayWithLastDays:(NSInteger)lastDays delegate:(id<XLStorageServiceDelegate>)delegate {
+    _currentDelegate = delegate;
+    if (!_database) {
+        [self initializeDatabaseWithDelegate:delegate];
+        if (_database) { [self getWordsRevealedByDayWithLastDays:lastDays delegate:delegate]; }
+        return;
+    }
+    NSMutableDictionary *byDate = [NSMutableDictionary dictionary];
+    NSString *sql = @"SELECT date(ended_at/1000, 'unixepoch', 'localtime') as d, SUM(words_revealed) as total FROM reading_sessions WHERE ended_at IS NOT NULL GROUP BY d";
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(_database, [sql UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
+        if ([delegate respondsToSelector:@selector(storageService:didGetWordsRevealedByDay:withError:)]) {
+            NSError *err = [NSError errorWithDomain:@"XLStorageService" code:1 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errmsg(_database)] }];
+            [delegate storageService:self didGetWordsRevealedByDay:nil withError:err];
+        }
+        return;
+    }
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *d = (const char *)sqlite3_column_text(stmt, 0);
+        NSInteger total = sqlite3_column_int(stmt, 1);
+        if (d) {
+            NSString *dateStr = [NSString stringWithUTF8String:d];
+            [byDate setObject:[NSNumber numberWithInteger:total] forKey:dateStr];
+        }
+    }
+    sqlite3_finalize(stmt);
+
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSDateFormatter *dayFmt = [[NSDateFormatter alloc] init];
+    [dayFmt setDateFormat:@"EEE d"];
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:(NSUInteger)lastDays];
+    for (NSInteger i = lastDays - 1; i >= 0; i--) {
+        NSDate *day = [cal dateByAddingUnit:NSCalendarUnitDay value:-i toDate:[NSDate date] options:0];
+        NSDateComponents *comp = [cal components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay fromDate:day];
+        NSDate *dayStart = [cal dateFromComponents:comp];
+        NSString *dateStr = [NSString stringWithFormat:@"%04ld-%02ld-%02ld", (long)[comp year], (long)[comp month], (long)[comp day]];
+        NSNumber *wr = [byDate objectForKey:dateStr];
+        NSInteger wordsRevealed = wr ? [wr integerValue] : 0;
+        NSString *dayLabel = [dayFmt stringFromDate:dayStart];
+        [result addObject:[NSDictionary dictionaryWithObjectsAndKeys:
+            dayLabel, @"dayLabel",
+            [NSNumber numberWithInteger:wordsRevealed], @"wordsRevealed",
+            nil]];
+    }
+    [dayFmt release];
+
+    if ([delegate respondsToSelector:@selector(storageService:didGetWordsRevealedByDay:withError:)]) {
+        [delegate storageService:self didGetWordsRevealedByDay:result withError:nil];
     }
 }
 

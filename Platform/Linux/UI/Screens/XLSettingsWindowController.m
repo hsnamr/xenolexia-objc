@@ -187,6 +187,9 @@
 }
 
 - (void)prefsToForm {
+    if (!_prefs.readerSettings) {
+        _prefs.readerSettings = [XLReaderSettings defaultSettings];
+    }
     NSArray *langs = [XLLanguageInfo supportedLanguages];
     [_sourceLangPopUp removeAllItems];
     [_targetLangPopUp removeAllItems];

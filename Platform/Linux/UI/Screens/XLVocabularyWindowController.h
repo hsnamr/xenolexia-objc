@@ -12,6 +12,7 @@
 
 @protocol XLVocabularyWindowDelegate <NSObject>
 - (void)vocabularyWindowDidClose;
+- (void)vocabularyDidRequestReview;
 @end
 
 @interface XLVocabularyWindowController : NSWindowController <NSTableViewDataSource, NSTableViewDelegate, XLStorageServiceDelegate> {
@@ -25,6 +26,7 @@
     NSButton *_editButton;
     NSButton *_deleteButton;
     NSButton *_exportButton;
+    NSButton *_reviewDueButton;
     XLStorageService *_storageService;
 }
 

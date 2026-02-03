@@ -7,15 +7,18 @@
 #import <AppKit/AppKit.h>
 #import "../../../Core/Models/Book.h"
 #import "../../../Core/Models/Reader.h"
+#import "../../../Core/Models/Language.h"
 #import "../../../Core/Services/XLManager.h"
 
 @protocol XLReaderWindowDelegate <NSObject>
 - (void)readerDidClose;
 - (void)readerDidRequestSaveWord:(XLForeignWordData *)wordData;
+- (void)readerDidRequestSettings;
+@optional
+- (void)readerDidRequestSaveWord:(XLForeignWordData *)wordData contextSentence:(NSString *)contextSentence;
 @end
 
-@interface XLReaderWindowController : NSWindowController <XLManagerDelegate, NSTextViewDelegate> {
-    id _delegate;
+@interface XLReaderWindowController : NSWindowController <XLManagerDelegate, NSTextViewDelegate, XLStorageServiceDelegate> {
     XLBook *_book;
     XLProcessedChapter *_currentChapter;
     NSInteger _currentChapterIndex;
@@ -42,9 +45,15 @@
     NSString *_sessionId;
     NSInteger _wordsRevealed;
     NSInteger _wordsSaved;
+    // User preferences (Phase 4): applied when processing chapters
+    XLUserPreferences *_userPrefs;
+    BOOL _isInitialPrefsLoad;
 }
+
+@property (nonatomic, assign) id<XLReaderWindowDelegate> delegate;
 
 - (instancetype)initWithBook:(XLBook *)book;
 - (XLBook *)book;
+- (void)reloadPreferences;
 
 @end

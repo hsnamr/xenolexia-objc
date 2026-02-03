@@ -2,7 +2,7 @@
 //  XLOnboardingWindowController.m
 //  Xenolexia
 //
-//  Onboarding implementation (Phase 5): steps Welcome, Source, Target, Proficiency, Word density, Get started
+//  Onboarding implementation (Phase 4): steps Welcome, Source, Target, Proficiency, Word density, Get started
 
 #import "XLOnboardingWindowController.h"
 #import "../../../../Core/Services/XLStorageService.h"

@@ -13,11 +13,22 @@ static const CGFloat kCardHeight = 220;
 static const CGFloat kCardSpacing = 16;
 static const NSInteger kGridColumns = 4;
 
+static NSString *libraryWindowStatePath(void) {
+    NSString *home = NSHomeDirectory();
+    NSString *dir = [home stringByAppendingPathComponent:@".xenolexia"];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:dir]) {
+        [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:NULL];
+    }
+    return [dir stringByAppendingPathComponent:@"window_state.plist"];
+}
+
 @interface XLLibraryWindowController ()
 - (void)rebuildGrid;
 - (void)switchToTableView;
 - (void)switchToGridView;
 - (void)gridCardDoubleClicked:(id)sender;
+- (void)restoreWindowState;
+- (void)saveWindowState;
 @end
 
 @implementation XLLibraryWindowController
@@ -32,6 +43,11 @@ static const NSInteger kGridColumns = 4;
         _currentSortOrder = @"DESC";
     }
     return self;
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:NSWindowWillCloseNotification object:self.window];
+    [super dealloc];
 }
 
 - (void)windowDidLoad {
@@ -156,7 +172,41 @@ static const NSInteger kGridColumns = 4;
     [_gridScrollView setHidden:YES];
     [contentView addSubview:_gridScrollView];
     
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(libraryWindowWillClose:) name:NSWindowWillCloseNotification object:self.window];
+    [self restoreWindowState];
     [self refreshBooks];
+    [_storageService getLibraryViewModeWithDelegate:self];
+}
+
+- (void)libraryWindowWillClose:(NSNotification *)notification {
+    (void)notification;
+    [self saveWindowState];
+}
+
+- (void)restoreWindowState {
+    NSString *path = libraryWindowStatePath();
+    NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:path];
+    if (!dict) return;
+    NSNumber *x = [dict objectForKey:@"x"];
+    NSNumber *y = [dict objectForKey:@"y"];
+    NSNumber *w = [dict objectForKey:@"width"];
+    NSNumber *h = [dict objectForKey:@"height"];
+    if (x && y && w && h && [w doubleValue] >= 600 && [h doubleValue] >= 400) {
+        NSRect frame = NSMakeRect([x doubleValue], [y doubleValue], [w doubleValue], [h doubleValue]);
+        [self.window setFrame:frame display:NO];
+    }
+}
+
+- (void)saveWindowState {
+    if (![self.window isVisible]) return;
+    NSRect frame = [self.window frame];
+    NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
+        [NSNumber numberWithDouble:frame.origin.x], @"x",
+        [NSNumber numberWithDouble:frame.origin.y], @"y",
+        [NSNumber numberWithDouble:frame.size.width], @"width",
+        [NSNumber numberWithDouble:frame.size.height], @"height",
+        nil];
+    [dict writeToFile:libraryWindowStatePath() atomically:YES];
 }
 
 - (void)refreshBooks {
@@ -197,6 +247,27 @@ static const NSInteger kGridColumns = 4;
     }
 }
 
+- (void)storageService:(id)service didGetLibraryViewMode:(BOOL)grid error:(NSError *)error {
+    (void)service;
+    (void)error;
+    _showingGrid = grid;
+    [_viewPopUp selectItemAtIndex:grid ? 1 : 0];
+    if (grid) {
+        [_tableScrollView setHidden:YES];
+        [_gridScrollView setHidden:NO];
+        [self rebuildGrid];
+    } else {
+        [_tableScrollView setHidden:NO];
+        [_gridScrollView setHidden:YES];
+    }
+}
+
+- (void)storageService:(id)service didSaveLibraryViewModeWithSuccess:(BOOL)success error:(NSError *)error {
+    (void)service;
+    (void)success;
+    (void)error;
+}
+
 - (void)filterBooks {
     NSString *searchText = _searchField ? [_searchField stringValue] : @"";
     
@@ -233,8 +304,10 @@ static const NSInteger kGridColumns = 4;
     NSInteger idx = [_viewPopUp indexOfSelectedItem];
     if (idx == 1) {
         [self switchToGridView];
+        [_storageService saveLibraryViewMode:YES delegate:self];
     } else {
         [self switchToTableView];
+        [_storageService saveLibraryViewMode:NO delegate:self];
     }
 }
 

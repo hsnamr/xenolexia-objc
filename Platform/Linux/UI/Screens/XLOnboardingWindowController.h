@@ -2,7 +2,7 @@
 //  XLOnboardingWindowController.h
 //  Xenolexia
 //
-//  Onboarding window (Phase 5): welcome, language/proficiency/density, Get started / Skip
+//  Onboarding window (Phase 4): welcome, language/proficiency/density, Get started / Skip
 
 #import <AppKit/AppKit.h>
 #import "../../../Core/Models/Reader.h"

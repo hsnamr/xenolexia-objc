@@ -31,6 +31,9 @@
 // Preferences (Phase 0)
 - (void)storageService:(id)service didGetPreferences:(XLUserPreferences *)prefs withError:(NSError *)error;
 - (void)storageService:(id)service didSavePreferencesWithSuccess:(BOOL)success error:(NSError *)error;
+// Library view mode (Phase 6)
+- (void)storageService:(id)service didGetLibraryViewMode:(BOOL)grid error:(NSError *)error;
+- (void)storageService:(id)service didSaveLibraryViewModeWithSuccess:(BOOL)success error:(NSError *)error;
 
 // Reading sessions (Phase 0)
 - (void)storageService:(id)service didStartReadingSessionWithId:(NSString *)sessionId error:(NSError *)error;
@@ -39,6 +42,7 @@
 
 // Statistics (Phase 0)
 - (void)storageService:(id)service didGetReadingStats:(XLReadingStats *)stats withError:(NSError *)error;
+- (void)storageService:(id)service didGetWordsRevealedByDay:(NSArray *)items withError:(NSError *)error;
 
 // Database initialization callback
 - (void)storageService:(id)service didInitializeDatabaseWithSuccess:(BOOL)success error:(NSError *)error;

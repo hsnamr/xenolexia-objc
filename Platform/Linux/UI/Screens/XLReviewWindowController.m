@@ -160,6 +160,7 @@ static const NSInteger kReviewBatchSize = 20;
         _dueCount = 0;
         [_dueLabel setStringValue:@"Due today: 0"];
         [_reviewedLabel setStringValue:@"Reviewed: 0"];
+        [_noCardsLabel setStringValue:@"No cards due right now."];
         [_noCardsLabel setHidden:NO];
         [self setCardAreaHidden:YES];
     }

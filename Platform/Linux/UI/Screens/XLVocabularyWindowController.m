@@ -4,6 +4,7 @@
 //
 //  Vocabulary list window implementation (Phase 2)
 
+#import <objc/runtime.h>
 #import "XLVocabularyWindowController.h"
 #import "../../../../Core/Services/XLStorageService.h"
 #import "../../../../Core/Services/XLExportService.h"
@@ -39,7 +40,7 @@
     [super windowDidLoad];
     NSView *contentView = [self.window contentView];
     [self.window setTitle:@"Xenolexia - Vocabulary"];
-    [self.window setMinSize:NSMakeSize(700, 450)];
+    [self.window setMinSize:NSMakeSize(780, 450)];
 
     _searchField = [[NSSearchField alloc] initWithFrame:NSMakeRect(10, 520, 300, 28)];
     [_searchField setTarget:self];
@@ -74,6 +75,12 @@
     [_exportButton setAction:@selector(exportButtonClicked:)];
     [contentView addSubview:_exportButton];
 
+    _reviewDueButton = [[NSButton alloc] initWithFrame:NSMakeRect(670, 520, 90, 28)];
+    [_reviewDueButton setTitle:@"Review (0 due)"];
+    [_reviewDueButton setTarget:self];
+    [_reviewDueButton setAction:@selector(reviewDueButtonClicked:)];
+    [contentView addSubview:_reviewDueButton];
+
     _statusLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(10, 492, 500, 20)];
     [_statusLabel setStringValue:@"Loading..."];
     [_statusLabel setEditable:NO];
@@ -81,12 +88,12 @@
     [_statusLabel setBackgroundColor:[NSColor controlBackgroundColor]];
     [contentView addSubview:_statusLabel];
 
-    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(10, 10, 680, 470)];
+    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(10, 10, 760, 470)];
     [scrollView setHasVerticalScroller:YES];
     [scrollView setHasHorizontalScroller:NO];
     [scrollView setBorderType:NSBezelBorder];
 
-    _tableView = [[NSTableView alloc] initWithFrame:NSMakeRect(0, 0, 680, 470)];
+    _tableView = [[NSTableView alloc] initWithFrame:NSMakeRect(0, 0, 760, 470)];
     [_tableView setDataSource:self];
     [_tableView setDelegate:self];
     [_tableView setDoubleAction:@selector(tableViewDoubleClick:)];
@@ -185,6 +192,10 @@
             ? [NSString stringWithFormat:@"Xenolexia - Vocabulary (Due: %ld)", (long)_dueCount]
             : @"Xenolexia - Vocabulary";
         [self.window setTitle:title];
+        NSString *btnTitle = _dueCount > 0
+            ? [NSString stringWithFormat:@"Review (%ld due)", (long)_dueCount]
+            : @"Review (0 due)";
+        [_reviewDueButton setTitle:btnTitle];
     }
 }
 
@@ -304,14 +315,15 @@
     [saveBtn setAction:@selector(editSheetSave:)];
     [cancelBtn setTarget:self];
     [cancelBtn setAction:@selector(editSheetCancel:)];
-    objc_setAssociatedObject(saveBtn, "sheet", sheet, OBJC_ASSOCIATION_RETAIN);
+    objc_setAssociatedObject(saveBtn, "sheet", sheet, OBJC_ASSOCIATION_ASSIGN);
     objc_setAssociatedObject(saveBtn, "srcField", srcField, OBJC_ASSOCIATION_RETAIN);
     objc_setAssociatedObject(saveBtn, "tgtField", tgtField, OBJC_ASSOCIATION_RETAIN);
     objc_setAssociatedObject(saveBtn, "ctxField", ctxField, OBJC_ASSOCIATION_RETAIN);
     objc_setAssociatedObject(saveBtn, "item", item, OBJC_ASSOCIATION_RETAIN);
-    objc_setAssociatedObject(cancelBtn, "sheet", sheet, OBJC_ASSOCIATION_RETAIN);
+    objc_setAssociatedObject(cancelBtn, "sheet", sheet, OBJC_ASSOCIATION_ASSIGN);
     [NSApp runModalForWindow:sheet];
     [sheet orderOut:nil];
+    [sheet release];
 }
 
 - (void)editSheetSave:(id)sender {
@@ -372,6 +384,12 @@
 - (void)exportCSV:(id)sender { [self performExportWithFormat:XLExportFormatCSV]; }
 - (void)exportJSON:(id)sender { [self performExportWithFormat:XLExportFormatJSON]; }
 - (void)exportAnki:(id)sender { [self performExportWithFormat:XLExportFormatAnki]; }
+
+- (IBAction)reviewDueButtonClicked:(id)sender {
+    if (_delegate && [_delegate respondsToSelector:@selector(vocabularyDidRequestReview)]) {
+        [_delegate vocabularyDidRequestReview];
+    }
+}
 
 - (void)performExportWithFormat:(XLExportFormat)format {
     NSString *ext = (format == XLExportFormatCSV) ? @"csv" : (format == XLExportFormatJSON) ? @"json" : @"txt";

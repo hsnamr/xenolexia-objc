@@ -26,6 +26,7 @@
     XLSettingsWindowController *_settingsController;
     XLOnboardingWindowController *_onboardingController;
     XLStatisticsWindowController *_statisticsController;
+    id _statusItem; // NSStatusItem if system tray is supported (Phase 7.3)
 }
 
 + (instancetype)sharedApp;

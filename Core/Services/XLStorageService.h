@@ -34,6 +34,9 @@
 // Preferences (Phase 0)
 - (void)getPreferencesWithDelegate:(id<XLStorageServiceDelegate>)delegate;
 - (void)savePreferences:(XLUserPreferences *)prefs delegate:(id<XLStorageServiceDelegate>)delegate;
+/// Library view mode: NO = list, YES = grid (Phase 6)
+- (void)getLibraryViewModeWithDelegate:(id<XLStorageServiceDelegate>)delegate;
+- (void)saveLibraryViewMode:(BOOL)grid delegate:(id<XLStorageServiceDelegate>)delegate;
 
 // Reading sessions (Phase 0)
 - (void)startReadingSessionForBookId:(NSString *)bookId delegate:(id<XLStorageServiceDelegate>)delegate;
@@ -42,6 +45,8 @@
 
 // Statistics (Phase 0)
 - (void)getReadingStatsWithDelegate:(id<XLStorageServiceDelegate>)delegate;
+/// Last N days: words revealed per day. Delegate receives array of NSDictionary with @"dayLabel" (e.g. @"Mon 27"), @"wordsRevealed" (NSNumber).
+- (void)getWordsRevealedByDayWithLastDays:(NSInteger)lastDays delegate:(id<XLStorageServiceDelegate>)delegate;
 
 @end
 
