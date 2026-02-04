@@ -30,10 +30,21 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+/// Backend for translation: Microsoft (legacy) or LibreTranslate (FOSS).
+typedef NS_ENUM(NSInteger, XLTranslationBackend) {
+    XLTranslationBackendMicrosoft = 0,
+    XLTranslationBackendLibreTranslate = 1
+};
+
 /// Translation service implementation
 @interface XLTranslationService : NSObject <XLTranslationService>
 
 + (instancetype)sharedService;
+
+/// Which backend to use (default Microsoft). Set to LibreTranslate for FOSS.
+@property (nonatomic, assign) XLTranslationBackend translationBackend;
+/// Base URL for LibreTranslate (e.g. https://libretranslate.com). Used when translationBackend is LibreTranslate.
+@property (nonatomic, copy) NSString *libretranslateBaseURL;
 
 @end
 

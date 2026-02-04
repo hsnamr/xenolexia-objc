@@ -36,9 +36,14 @@ Xenolexia_OBJC_FILES = \
 	../../Core/Services/XLManager.m \
 	../../Core/Services/XLTranslationEngine.m \
 	../../Core/Services/XLTranslationService.m \
+	../../Core/Services/XLLibreTranslateClient.m \
 	../../Core/Services/XLStorageService.m \
 	../../Core/Services/XLStorageServiceBlockHelper.m \
 	../../Core/Services/XLExportService.m \
+	../../ThirdParty/chcsvparser/CHCSVParser/CHCSVParser/CHCSVParser.m \
+	../../ThirdParty/fmdb/src/fmdb/FMDatabase.m \
+	../../ThirdParty/fmdb/src/fmdb/FMResultSet.m \
+	../../ThirdParty/fmdb/src/fmdb/FMDatabaseAdditions.m \
 	$(SMALLSTEP_DIR)/SmallStep/Core/SSPlatform.m \
 	$(SMALLSTEP_DIR)/SmallStep/Core/SSFileSystem.m \
 	$(SMALLSTEP_DIR)/SmallStep/Core/SSHostApplication.m \
@@ -57,6 +62,8 @@ Xenolexia_INCLUDE_DIRS = \
 	-I../../Core/Native \
 	-I$(SMALLSTEP_INCLUDE) \
 	-I../../ \
+	-I../../ThirdParty/fmdb/src/fmdb \
+	-I../../ThirdParty/chcsvparser/CHCSVParser/CHCSVParser \
 	-I/usr/include \
 	-I/usr/include/libxml2
 

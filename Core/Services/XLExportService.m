@@ -7,6 +7,7 @@
 #import "../Models/Language.h"
 #import "../Models/Vocabulary.h"
 #import "SSFileSystem.h"
+#import "CHCSVParser.h"
 
 @interface XLExportService () {
     SSFileSystem *_fileSystem;
@@ -62,33 +63,38 @@
 }
 
 - (NSString *)exportToCSV:(NSArray *)items {
-    NSMutableString *csv = [[NSMutableString alloc] init];
+    // Use CHCSVWriter (FOSS) for correct CSV escaping; write to memory then return string
+    NSOutputStream *stream = [NSOutputStream outputStreamToMemory];
+    CHCSVWriter *writer = [[CHCSVWriter alloc] initWithOutputStream:stream encoding:NSUTF8StringEncoding delimiter:(unichar)','];
+    if (!writer) {
+        return nil;
+    }
     // Spec 04-algorithms: source_word, target_word, source_language, target_language [, context_sentence] [, book_title] [, status, review_count, ease_factor, interval, added_at]
-    [csv appendString:@"source_word,target_word,source_language,target_language,context_sentence,book_title,status,review_count,ease_factor,interval,added_at\n"];
+    [writer writeLineOfFields:@[ @"source_word", @"target_word", @"source_language", @"target_language", @"context_sentence", @"book_title", @"status", @"review_count", @"ease_factor", @"interval", @"added_at" ]];
     NSDateFormatter *dateFmt = [[NSDateFormatter alloc] init];
     dateFmt.dateFormat = @"yyyy-MM-dd";
     for (XLVocabularyItem *item in items) {
-        [csv appendFormat:@"%@,%@,%@,%@,%@,%@,%@,%ld,%.2f,%ld,%@\n",
-         [self escapeCSV:item.sourceWord],
-         [self escapeCSV:item.targetWord],
-         [XLLanguageInfo codeStringForLanguage:item.sourceLanguage],
-         [XLLanguageInfo codeStringForLanguage:item.targetLanguage],
-         [self escapeCSV:item.contextSentence ?: @""],
-         [self escapeCSV:item.bookTitle ?: @""],
-         [XLVocabularyItem codeStringForStatus:item.status],
-         (long)item.reviewCount,
-         item.easeFactor,
-         (long)item.interval,
-         [dateFmt stringFromDate:item.addedAt]];
+        [writer writeLineOfFields:@[
+            item.sourceWord ?: @"",
+            item.targetWord ?: @"",
+            [XLLanguageInfo codeStringForLanguage:item.sourceLanguage],
+            [XLLanguageInfo codeStringForLanguage:item.targetLanguage],
+            item.contextSentence ?: @"",
+            item.bookTitle ?: @"",
+            [XLVocabularyItem codeStringForStatus:item.status],
+            [NSString stringWithFormat:@"%ld", (long)item.reviewCount],
+            [NSString stringWithFormat:@"%.2f", item.easeFactor],
+            [NSString stringWithFormat:@"%ld", (long)item.interval],
+            [dateFmt stringFromDate:item.addedAt]
+        ]];
     }
-    return [csv copy];
-}
-
-- (NSString *)escapeCSV:(NSString *)value {
-    if ([value rangeOfCharacterFromSet:[NSCharacterSet characterSetWithCharactersInString:@",\"\n"]].location != NSNotFound) {
-        return [NSString stringWithFormat:@"\"%@\"", [value stringByReplacingOccurrencesOfString:@"\"" withString:@"\"\""]];
+    [writer closeStream];
+    NSData *data = [stream propertyForKey:NSStreamDataWrittenToMemoryStreamKey];
+    [writer release];
+    if (!data || [data length] == 0) {
+        return nil;
     }
-    return value;
+    return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 }
 
 - (NSString *)exportToJSON:(NSArray<XLVocabularyItem *> *)items {

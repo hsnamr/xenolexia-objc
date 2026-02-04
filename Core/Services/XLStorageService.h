@@ -51,12 +51,12 @@
 @end
 
 @class SSFileSystem;
-struct sqlite3;
+@class FMDatabase;
 
-/// Storage service implementation
+/// Storage service implementation (uses FMDB for SQLite access)
 @interface XLStorageService : NSObject <XLStorageService> {
     NSString *_databasePath;
-    struct sqlite3 *_database;
+    FMDatabase *_database;
     SSFileSystem *_fileSystem;
     id<XLStorageServiceDelegate> _currentDelegate;
 }

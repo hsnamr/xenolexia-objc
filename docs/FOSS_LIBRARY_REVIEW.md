@@ -13,7 +13,7 @@ This document reviews the xenolexia-objc implementation and recommends replacing
 | **PDF** | MuPDF (optional) | AGPL | Core/Native XLPDFReader |
 | **MOBI** | libmobi (optional) | LGPL | Core/Native XLMobiReader |
 | **JSON export** | Foundation NSJSONSerialization | — | XLExportService |
-| **SQLite** | sqlite3 (C API) | Public domain | XLStorageService (raw API) |
+| **SQLite** | FMDB + sqlite3 | MIT / Public domain | XLStorageService (FMDB) |
 | **File system** | SmallStep (SSFileSystem) | — | Cross-platform paths and I/O |
 | **SM-2** | In-house ObjC (XLSm2) | — | Small, spec-aligned; no need to replace |
 
@@ -75,12 +75,12 @@ This document reviews the xenolexia-objc implementation and recommends replacing
 
 | Component | Current | Recommended FOSS | Priority |
 |-----------|---------|------------------|----------|
-| SQLite | Raw sqlite3 + manual declarations | Real sqlite3.h and/or FMDB | High |
-| EPUB chapter text | UTF-8 decode only | libxml2 HTML→text | High |
-| HTTP download | Stub | libcurl | High |
-| CSV export | Manual escapeCSV | CHCSVParser (CHCSVWriter) | Medium |
-| Translation | Microsoft only | + LibreTranslate (or similar) | Medium |
-| Word frequency | None | FOSS word lists (data) | Low |
+| SQLite | FMDB (done) | — | High ✓ |
+| EPUB chapter text | libxml2 HTML→text (done) | — | High ✓ |
+| HTTP download | libcurl (done) | — | High ✓ |
+| CSV export | CHCSVWriter (done) | — | Medium ✓ |
+| Translation | Microsoft + LibreTranslate (done) | — | Medium ✓ |
+| Word frequency | None | FOSS word lists (data); optional | Low |
 | JSON export | NSJSONSerialization | Keep | — |
 | SM-2 | XLSm2 (in-house) | Keep (tiny, spec-aligned) | — |
 
@@ -90,6 +90,6 @@ This document reviews the xenolexia-objc implementation and recommends replacing
 
 - **HTML-to-text (libxml2):** Implemented in XLEpubParser. When chapter data looks like HTML (contains `<`/`>` in the first 2KB), it is parsed with libxml2 `htmlReadMemory` and text nodes are extracted; otherwise UTF-8/ISO Latin-1 decode is used.
 - **DownloadService (libcurl):** Implemented. `downloadFrom:toDirectory:` uses libcurl (FOSS) to perform HTTP(S) download and write to a file in the given directory. Link with `-lcurl`.
-- **SQLite:** XLStorageService now uses `#include <sqlite3.h>` (real SQLite header) instead of manual declarations. Requires `libsqlite3-dev` (or equivalent) so that `sqlite3.h` is available. FMDB remains an optional refactor for a cleaner ObjC API.
-- **CSV:** Documented; CHCSVParser can be integrated when adding a vendored/dependency path for it.
-- **Translation:** Documented; FOSS backend (e.g. LibreTranslate) can be added behind a small provider interface.
+- **SQLite (FMDB):** XLStorageService uses **FMDB** (FOSS, MIT) for all database access. FMDatabase/FMResultSet replace raw sqlite3_* calls. Build includes ThirdParty/fmdb and `-lsqlite3`.
+- **CSV (CHCSVParser):** XLExportService uses **CHCSVWriter** (CHCSVParser, FOSS) for CSV export. Export builds CSV via `CHCSVWriter` with `outputStreamToMemory`, so escaping and formatting are handled by the library.
+- **Translation (LibreTranslate):** XLTranslationService supports a FOSS backend via **XLLibreTranslateClient** (LibreTranslate HTTP API over libcurl). Set `translationBackend = XLTranslationBackendLibreTranslate` and optionally `libretranslateBaseURL` (default `https://libretranslate.com`) to use it; otherwise the legacy Microsoft path is used.

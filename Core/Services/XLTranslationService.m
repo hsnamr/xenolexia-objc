@@ -4,7 +4,8 @@
 //
 
 #import "XLTranslationService.h"
-#import "../../TranslationService.h" // Legacy service for now
+#import "XLLibreTranslateClient.h"
+#import "../../TranslationService.h" // Legacy Microsoft
 
 @implementation XLTranslationService
 
@@ -16,23 +17,32 @@
     return sharedService;
 }
 
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _translationBackend = XLTranslationBackendMicrosoft;
+        _libretranslateBaseURL = @"https://libretranslate.com";
+    }
+    return self;
+}
+
 - (void)translateWord:(NSString *)word
          fromLanguage:(XLLanguage)sourceLanguage
            toLanguage:(XLLanguage)targetLanguage
        withCompletion:(void(^)(NSString *translatedWord, NSError *error))completion {
-    // For now, use the legacy TranslationService
-    // This can be replaced with a proper translation API implementation
-    TranslationService *legacyService = [TranslationService sharedTranslator];
-    
-    // Convert language codes to strings (legacy service expects "en", "ja", etc.)
     NSString *sourceCode = [XLLanguageInfo codeStringForLanguage:sourceLanguage];
     NSString *targetCode = [XLLanguageInfo codeStringForLanguage:targetLanguage];
     
-    // Use legacy service method that accepts language codes
+    if (self.translationBackend == XLTranslationBackendLibreTranslate) {
+        NSString *base = self.libretranslateBaseURL ?: @"https://libretranslate.com";
+        [XLLibreTranslateClient translateText:word fromLanguage:sourceCode toLanguage:targetCode baseURL:base completion:^(NSString *translatedText, NSError *error) {
+            if (completion) completion(translatedText, error);
+        }];
+        return;
+    }
+    TranslationService *legacyService = [TranslationService sharedTranslator];
     [legacyService doTranslateWord:word from:sourceCode to:targetCode withCompletion:^(NSString *translatedText) {
-        if (completion) {
-            completion(translatedText, nil);
-        }
+        if (completion) completion(translatedText, nil);
     }];
 }
 
