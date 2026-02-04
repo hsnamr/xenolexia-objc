@@ -10,36 +10,7 @@
 #import "../Models/Reader.h"
 #import "SSFileSystem.h"
 #import "../Native/XLSm2.h"
-
-// SQLite3 declarations (minimal interface for GNUStep compatibility)
-// Note: Install libsqlite3-dev package for full sqlite3.h header
-#ifndef SQLITE_OK
-#define SQLITE_OK           0
-#define SQLITE_DONE        101
-#define SQLITE_ROW         100
-#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
-struct sqlite3;
-struct sqlite3_stmt;
-typedef struct sqlite3 sqlite3;
-typedef struct sqlite3_stmt sqlite3_stmt;
-typedef void (*sqlite3_destructor_type)(void*);
-int sqlite3_open(const char *filename, struct sqlite3 **ppDb);
-int sqlite3_close(struct sqlite3 *db);
-int sqlite3_prepare_v2(struct sqlite3 *db, const char *zSql, int nByte, struct sqlite3_stmt **ppStmt, const char **pzTail);
-int sqlite3_step(struct sqlite3_stmt *pStmt);
-int sqlite3_finalize(struct sqlite3_stmt *pStmt);
-int sqlite3_bind_text(struct sqlite3_stmt *pStmt, int i, const char *zData, int nData, void (*xDel)(void*));
-int sqlite3_bind_int(struct sqlite3_stmt *pStmt, int i, int value);
-int sqlite3_bind_int64(struct sqlite3_stmt *pStmt, int i, long long value);
-int sqlite3_bind_double(struct sqlite3_stmt *pStmt, int i, double value);
-const unsigned char *sqlite3_column_text(struct sqlite3_stmt *pStmt, int iCol);
-int sqlite3_column_int(struct sqlite3_stmt *pStmt, int iCol);
-long long sqlite3_column_int64(struct sqlite3_stmt *pStmt, int iCol);
-double sqlite3_column_double(struct sqlite3_stmt *pStmt, int iCol);
-const char *sqlite3_errmsg(struct sqlite3 *db);
-int sqlite3_exec(struct sqlite3 *db, const char *sql, int (*callback)(void*,int,char**,char**), void *arg, char **errmsg);
-void sqlite3_free(void *p);
-#endif
+#include <sqlite3.h>
 
 @interface XLStorageService ()
 

@@ -1,12 +1,14 @@
 # GNUmakefile for Xenolexia Linux App
-# SmallStep: use ../../../SmallStep (Xenolexia/SmallStep). Create symlink: from Xenolexia repo: ln -sn ../SmallStep SmallStep
+# SmallStep: build as library; run ./scripts/install-smallstep.sh, then headers in include/, lib in lib/.
 
 include $(GNUSTEP_MAKEFILES)/common.make
 
 APP_NAME = Xenolexia
 
-# Path to SmallStep from Platform/Linux (Xenolexia/SmallStep or sibling via symlink)
-SMALLSTEP_DIR = ../../../SmallStep
+# SmallStep: headers and lib from xenolexia-objc/include and lib (absolute path for obj/ build)
+XENOLEXIA_OBJC_ROOT = $(shell cd ../.. && pwd)
+SMALLSTEP_INCLUDE = $(XENOLEXIA_OBJC_ROOT)/include
+SMALLSTEP_LIB = $(XENOLEXIA_OBJC_ROOT)/lib
 
 Xenolexia_OBJC_FILES = \
 	main.m \
@@ -53,8 +55,7 @@ Xenolexia_INCLUDE_DIRS = \
 	-I../../Core/Models \
 	-I../../Core/Services \
 	-I../../Core/Native \
-	-I$(SMALLSTEP_DIR)/SmallStep/Core \
-	-I$(SMALLSTEP_DIR)/SmallStep/Platform/Linux \
+	-I$(SMALLSTEP_INCLUDE) \
 	-I../../ \
 	-I/usr/include \
 	-I/usr/include/libxml2
@@ -70,8 +71,8 @@ Xenolexia_HEADER_FILES = \
 	UI/Screens/XLOnboardingWindowController.h \
 	UI/Screens/XLStatisticsWindowController.h
 
-# Link against SmallStep (from xenolexia-objc/lib), SQLite, libxml2, zlib, libzip
-Xenolexia_LIBRARIES_DEPEND_UPON = -lSmallStep -lsqlite3 -lxml2 -lz -lzip
+# Link against SmallStep (from xenolexia-objc/lib), SQLite, libxml2, zlib, libzip, libcurl (downloads)
+Xenolexia_LIBRARIES_DEPEND_UPON = -lSmallStep -lsqlite3 -lxml2 -lz -lzip -lcurl
 ADDITIONAL_LDFLAGS = -L$(SMALLSTEP_LIB) -L/lib/x86_64-linux-gnu
 
 include $(GNUSTEP_MAKEFILES)/application.make

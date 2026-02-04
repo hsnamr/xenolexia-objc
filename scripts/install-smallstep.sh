@@ -26,6 +26,7 @@ fi
 
 cd "$SMALLSTEP_SRC"
 make -f Makefile.install clean 2>/dev/null || true
-make -f Makefile.install install DESTDIR="$XENOLEXIA_OBJC"
+# Use clang for ObjC (nullable/weak support); -x objective-c for .m files
+make -f Makefile.install install DESTDIR="$XENOLEXIA_OBJC" OBJC="clang -x objective-c"
 
 echo "Done. Headers in $XENOLEXIA_OBJC/include, library in $XENOLEXIA_OBJC/lib"

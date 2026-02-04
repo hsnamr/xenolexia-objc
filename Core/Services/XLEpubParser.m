@@ -3,10 +3,66 @@
 //  Xenolexia
 //
 //  EPUB parser using native XLEpubReader (libzip + libxml2). Replaces xenolexia-shared-c.
+//  Chapter content: uses libxml2 (FOSS) for HTML→plain text when data looks like HTML.
 
 #import "XLEpubParser.h"
 #import "../Models/Book.h"
 #import "XLEpubReader.h"
+#import <libxml/parser.h>
+#import <libxml/tree.h>
+#import <libxml/HTMLparser.h>
+#import <stdlib.h>
+#import <string.h>
+
+/** Recursively collect text from an xmlNode tree (libxml2). */
+static void collectTextFromNode(xmlNode *node, NSMutableString *out) {
+    if (!node) return;
+    if (node->type == XML_TEXT_NODE && node->content) {
+        char *trimmed = (char *)node->content;
+        while (*trimmed == ' ' || *trimmed == '\t' || *trimmed == '\n' || *trimmed == '\r') trimmed++;
+        size_t len = strlen(trimmed);
+        while (len > 0 && (trimmed[len - 1] == ' ' || trimmed[len - 1] == '\t' || trimmed[len - 1] == '\n' || trimmed[len - 1] == '\r')) len--;
+        if (len > 0) {
+            NSString *s = [[NSString alloc] initWithBytes:trimmed length:len encoding:NSUTF8StringEncoding];
+            if (s) {
+                if ([out length] > 0) [out appendString:@" "];
+                [out appendString:s];
+                [s release];
+            }
+        }
+    }
+    for (xmlNode *cur = node->children; cur; cur = cur->next)
+        collectTextFromNode(cur, out);
+}
+
+/** Extract plain text from HTML/XHTML bytes using libxml2 (FOSS). Returns nil on parse failure. */
+static NSString *plainTextFromHTMLData(NSData *data) {
+    if (!data || [data length] == 0) return nil;
+    const char *bytes = (const char *)[data bytes];
+    int len = (int)[data length];
+    xmlDoc *doc = htmlReadMemory(bytes, len, NULL, NULL, XML_PARSE_RECOVER | XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
+    if (!doc) return nil;
+    xmlNode *root = xmlDocGetRootElement(doc);
+    NSMutableString *result = [NSMutableString string];
+    if (root) collectTextFromNode(root, result);
+    xmlFreeDoc(doc);
+    return [result length] > 0 ? [[result copy] autorelease] : nil;
+}
+
+/** Heuristic: data looks like HTML if it contains '<' and '>' in the first 2KB. */
+static BOOL dataLooksLikeHTML(NSData *data) {
+    if (!data || [data length] < 4) return NO;
+    const char *p = (const char *)[data bytes];
+    size_t len = [data length];
+    if (len > 2048) len = 2048;
+    int hasLt = 0, hasGt = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (p[i] == '<') hasLt = 1;
+        if (p[i] == '>') hasGt = 1;
+        if (hasLt && hasGt) return YES;
+    }
+    return NO;
+}
 
 @implementation XLEpubParser
 
@@ -146,9 +202,13 @@
     }
 }
 
-/** Extract readable text/HTML from chapter bytes (UTF-8). */
+/** Extract readable text from chapter bytes. Uses libxml2 (FOSS) for HTML→text when content looks like HTML; otherwise UTF-8/ISO Latin-1 decode. */
 + (NSString *)stringFromChapterData:(NSData *)data {
     if (!data || [data length] == 0) return nil;
+    if (dataLooksLikeHTML(data)) {
+        NSString *plain = plainTextFromHTMLData(data);
+        if (plain) return plain;
+    }
     NSString *s = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     if (!s) s = [[NSString alloc] initWithData:data encoding:NSISOLatin1StringEncoding];
     return [s autorelease];
