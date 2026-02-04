@@ -21,27 +21,14 @@ Xenolexia-objc supports three platforms, using **SmallStep** for cross-platform 
 
 ### Build order
 
-1. **Build SmallStep** (sibling of Xenolexia repo at `../SmallStep` or `$(WORKSPACE)/SmallStep`):
+1. **Build SmallStep as a library** and install headers + lib into xenolexia-objc (do **not** compile SmallStep sources as part of xenolexia-objc):
    ```bash
-   cd /path/to/SmallStep
-   . /usr/share/GNUStep/Makefiles/GNUstep.sh   # if needed
-   make
+   cd /path/to/Xenolexia/xenolexia-objc
+   ./scripts/install-smallstep.sh /path/to/SmallStep
    ```
+   This builds SmallStep as a static library (`libSmallStep.a`), copies headers to `xenolexia-objc/include/`, and the library to `xenolexia-objc/lib/`. If SmallStep is a sibling of Xenolexia, you can omit the path: `./scripts/install-smallstep.sh` (defaults to `../SmallStep`).
 
-2. **Optional symlink** so xenolexia-objc finds SmallStep: from the Xenolexia repo root, if SmallStep is a sibling (e.g. `Workspace/self/SmallStep` and `Workspace/self/Xenolexia`):
-   ```bash
-   cd /path/to/Xenolexia
-   ln -sn ../SmallStep SmallStep
-   ```
-   The GNUmakefile expects SmallStep at `xenolexia-objc/Platform/Linux/../../../SmallStep` (i.e. `Xenolexia/SmallStep`).
-
-3. **Build xenolexia-shared-c** (same repo):
-   ```bash
-   cd /path/to/Xenolexia/xenolexia-shared-c
-   make
-   ```
-
-4. **Build Xenolexia Linux app**:
+2. **Build Xenolexia Linux app** (no xenolexia-shared-c required; uses native ObjC Core/Native and SmallStep from `include/` and `lib/`):
    ```bash
    cd /path/to/Xenolexia/xenolexia-objc/Platform/Linux
    . /usr/share/GNUStep/Makefiles/GNUstep.sh   # if needed
@@ -49,14 +36,14 @@ Xenolexia-objc supports three platforms, using **SmallStep** for cross-platform 
    ```
    Output: `Xenolexia.app/` (or `./Xenolexia`).
 
-Requires: GNUStep, SmallStep, xenolexia-shared-c (libxenolexia_sm2, libxenolexia_epub, etc.), SQLite, libxml2, zlib.
+Requires: GNUStep, SmallStep, SQLite, libxml2, zlib, libzip. SM-2, EPUB, FB2, PDF (stub), MOBI (stub) are implemented in Core/Native (no xenolexia-shared-c).
 
 ## macOS
 
 - Use the same desktop UI as Linux: `XLLinuxApp` + window controllers (NSWindowController).
 - Add an Xcode project with a **macOS Application** target:
-  - Source files: `Platform/macOS/main.m`, `Platform/Linux/UI/**/*.m`, `Core/**/*.m`, services, SmallStep sources.
-  - Link: AppKit, Foundation, xenolexia-shared-c (or use xenolexia-shared-cpp when available).
+  - Source files: `Platform/macOS/main.m`, `Platform/Linux/UI/**/*.m`, `Core/**/*.m`, services. SmallStep: use `include/` headers and `lib/libSmallStep.a` (build SmallStep and run install-smallstep.sh for macOS, or add SmallStep sources to the target).
+  - Link: AppKit, Foundation, Core/Native (XLSm2, XLEpubReader, XLFB2Reader, XLPDFReader, XLMobiReader), SmallStep.
 - Entry point: `Platform/macOS/main.m` → `[XLLinuxApp sharedApp] run` (same as Linux).
 
 ## iOS (UIKit)

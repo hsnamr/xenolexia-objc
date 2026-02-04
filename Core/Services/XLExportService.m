@@ -6,7 +6,7 @@
 #import "XLExportService.h"
 #import "../Models/Language.h"
 #import "../Models/Vocabulary.h"
-#import "../../../SmallStep/SmallStep/Core/SSFileSystem.h"
+#import "SSFileSystem.h"
 
 @interface XLExportService () {
     SSFileSystem *_fileSystem;

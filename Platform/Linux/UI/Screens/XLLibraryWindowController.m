@@ -6,7 +6,7 @@
 #import "XLLibraryWindowController.h"
 #import "../../../../Core/Services/XLStorageService.h"
 #import "../../../../Core/Services/XLManager.h"
-#import "../../../../SmallStep/SmallStep/Core/SSFileSystem.h"
+#import "SSFileSystem.h"
 #import <objc/runtime.h>
 
 static const CGFloat kCardWidth = 160;

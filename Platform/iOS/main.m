@@ -7,7 +7,7 @@
 
 #import <UIKit/UIKit.h>
 #import "XLiOSAppDelegate.h"
-#import "../../../SmallStep/SmallStep/Core/SSHostApplication.h"
+#import "SSHostApplication.h"
 #import "../../../Core/Services/XLStorageService.h"
 #import "../../../Core/Services/XLStorageServiceDelegate.h"
 

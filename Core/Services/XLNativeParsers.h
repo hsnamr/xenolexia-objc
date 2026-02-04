@@ -2,7 +2,7 @@
 //  XLNativeParsers.h
 //  Xenolexia
 //
-//  Thin Obj-C wrappers for xenolexia-shared-c PDF, FB2, MOBI. Returns nil if native lib unavailable or parse fails.
+//  Thin Obj-C wrappers for native XLPDFReader, XLFB2Reader, XLMobiReader. Returns nil if parse fails or lib unavailable.
 //
 
 #import <Foundation/Foundation.h>

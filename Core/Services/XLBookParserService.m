@@ -6,7 +6,7 @@
 #import "XLBookParserService.h"
 #import "XLEpubParser.h"
 #import "XLNativeParsers.h"
-#import "../../../SmallStep/SmallStep/Core/SSFileSystem.h"
+#import "SSFileSystem.h"
 
 @implementation XLBookParserService
 

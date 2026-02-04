@@ -2,23 +2,17 @@
 //  XLNativeParsers.m
 //  Xenolexia
 //
-//  Wraps xenolexia_pdf, xenolexia_fb2, xenolexia_mobi C APIs.
+//  Thin Obj-C wrappers for native XLPDFReader, XLFB2Reader, XLMobiReader.
+//  Replaces xenolexia-shared-c PDF, FB2, MOBI. Returns nil if native lib unavailable or parse fails.
 //
 
 #import "XLNativeParsers.h"
 #import "../Models/Book.h"
-#import "xenolexia_pdf.h"
-#import "xenolexia_fb2.h"
-#import "xenolexia_mobi.h"
+#import "../Native/XLPDFReader.h"
+#import "../Native/XLFB2Reader.h"
+#import "../Native/XLMobiReader.h"
 
 @implementation XLNativeParsers
-
-+ (NSString *)stringFromCAndFree:(char *)cstr freeFn:(void (*)(void *))freeFn {
-    if (!cstr) return nil;
-    NSString *s = [NSString stringWithUTF8String:cstr];
-    if (freeFn) freeFn(cstr);
-    return s;
-}
 
 #pragma mark - PDF
 
@@ -27,35 +21,29 @@
         if (error) *error = [NSError errorWithDomain:@"XLNativeParsers" code:1 userInfo:@{NSLocalizedDescriptionKey: @"File path is empty"}];
         return nil;
     }
-    xenolexia_pdf_error_t err = XENOLEXIA_PDF_OK;
-    xenolexia_pdf_t *pdf = xenolexia_pdf_open([path UTF8String], &err);
-    if (!pdf) {
-        if (error) *error = [NSError errorWithDomain:@"XLNativeParsers" code:(NSInteger)err userInfo:@{NSLocalizedDescriptionKey: @"Failed to open PDF"}];
-        return nil;
-    }
+    XLPDFReader *pdf = [XLPDFReader openAtPath:path error:error];
+    if (!pdf) return nil;
     XLBookMetadata *metadata = [[[XLBookMetadata alloc] init] autorelease];
-    metadata.title = [self stringFromCAndFree:xenolexia_pdf_copy_title(pdf) freeFn:xenolexia_pdf_free] ?: [[path lastPathComponent] stringByDeletingPathExtension];
-    metadata.author = [self stringFromCAndFree:xenolexia_pdf_copy_author(pdf) freeFn:xenolexia_pdf_free];
+    metadata.title = [pdf title] ?: [[path lastPathComponent] stringByDeletingPathExtension];
+    metadata.author = [pdf author];
     NSMutableArray *chapters = [NSMutableArray array];
-    int32_t pageCount = xenolexia_pdf_page_count(pdf);
     NSInteger totalWords = 0;
-    for (int32_t i = 0; i < pageCount; i++) {
-        char *text = xenolexia_pdf_copy_page_text(pdf, i);
-        NSString *content = [self stringFromCAndFree:text freeFn:xenolexia_pdf_free] ?: @"";
+    NSInteger pageCount = [pdf pageCount];
+    for (NSInteger i = 0; i < pageCount; i++) {
+        NSString *content = [pdf pageTextAtIndex:i] ?: @"";
         NSArray *words = [content componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
         words = [words filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"length > 0"]];
         NSInteger wc = [words count];
         totalWords += wc;
         XLChapter *ch = [[XLChapter alloc] init];
         ch.chapterId = [[NSUUID UUID] UUIDString];
-        ch.title = [NSString stringWithFormat:@"Page %d", (int)(i + 1)];
+        ch.title = [NSString stringWithFormat:@"Page %ld", (long)(i + 1)];
         ch.index = (NSInteger)i;
         ch.content = content;
         ch.wordCount = wc;
         [chapters addObject:ch];
         [ch release];
     }
-    xenolexia_pdf_close(pdf);
     if ([chapters count] == 0) {
         XLChapter *ch = [[XLChapter alloc] init];
         ch.chapterId = [[NSUUID UUID] UUIDString];
@@ -81,21 +69,17 @@
         if (error) *error = [NSError errorWithDomain:@"XLNativeParsers" code:1 userInfo:@{NSLocalizedDescriptionKey: @"File path is empty"}];
         return nil;
     }
-    xenolexia_fb2_error_t err = XENOLEXIA_FB2_OK;
-    xenolexia_fb2_t *fb2 = xenolexia_fb2_open([path UTF8String], &err);
-    if (!fb2) {
-        if (error) *error = [NSError errorWithDomain:@"XLNativeParsers" code:(NSInteger)err userInfo:@{NSLocalizedDescriptionKey: @"Failed to open FB2"}];
-        return nil;
-    }
+    XLFB2Reader *fb2 = [XLFB2Reader openAtPath:path error:error];
+    if (!fb2) return nil;
     XLBookMetadata *metadata = [[[XLBookMetadata alloc] init] autorelease];
-    metadata.title = [self stringFromCAndFree:xenolexia_fb2_copy_title(fb2) freeFn:xenolexia_fb2_free] ?: [[path lastPathComponent] stringByDeletingPathExtension];
-    metadata.author = [self stringFromCAndFree:xenolexia_fb2_copy_author(fb2) freeFn:xenolexia_fb2_free];
+    metadata.title = [fb2 title] ?: [[path lastPathComponent] stringByDeletingPathExtension];
+    metadata.author = [fb2 author];
     NSMutableArray *chapters = [NSMutableArray array];
-    int32_t sectionCount = xenolexia_fb2_section_count(fb2);
     NSInteger totalWords = 0;
-    for (int32_t i = 0; i < sectionCount; i++) {
-        NSString *title = [self stringFromCAndFree:xenolexia_fb2_copy_section_title(fb2, i) freeFn:xenolexia_fb2_free] ?: [NSString stringWithFormat:@"Section %d", (int)(i + 1)];
-        NSString *content = [self stringFromCAndFree:xenolexia_fb2_copy_section_text(fb2, i) freeFn:xenolexia_fb2_free] ?: @"";
+    NSInteger sectionCount = [fb2 sectionCount];
+    for (NSInteger i = 0; i < sectionCount; i++) {
+        NSString *title = [fb2 sectionTitleAtIndex:i] ?: [NSString stringWithFormat:@"Section %ld", (long)(i + 1)];
+        NSString *content = [fb2 sectionTextAtIndex:i] ?: @"";
         NSArray *words = [content componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
         words = [words filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"length > 0"]];
         NSInteger wc = [words count];
@@ -109,7 +93,6 @@
         [chapters addObject:ch];
         [ch release];
     }
-    xenolexia_fb2_close(fb2);
     if ([chapters count] == 0) {
         XLChapter *ch = [[XLChapter alloc] init];
         ch.chapterId = [[NSUUID UUID] UUIDString];
@@ -135,39 +118,32 @@
         if (error) *error = [NSError errorWithDomain:@"XLNativeParsers" code:1 userInfo:@{NSLocalizedDescriptionKey: @"File path is empty"}];
         return nil;
     }
-    xenolexia_mobi_error_t err = XENOLEXIA_MOBI_OK;
-    xenolexia_mobi_t *mobi = xenolexia_mobi_open([path UTF8String], &err);
-    if (!mobi) {
-        if (error) *error = [NSError errorWithDomain:@"XLNativeParsers" code:(NSInteger)err userInfo:@{NSLocalizedDescriptionKey: @"Failed to open MOBI"}];
-        return nil;
-    }
+    XLMobiReader *mobi = [XLMobiReader openAtPath:path error:error];
+    if (!mobi) return nil;
     XLBookMetadata *metadata = [[[XLBookMetadata alloc] init] autorelease];
-    metadata.title = [self stringFromCAndFree:xenolexia_mobi_copy_title(mobi) freeFn:xenolexia_mobi_free] ?: [[path lastPathComponent] stringByDeletingPathExtension];
-    metadata.author = [self stringFromCAndFree:xenolexia_mobi_copy_author(mobi) freeFn:xenolexia_mobi_free];
+    metadata.title = [mobi title] ?: [[path lastPathComponent] stringByDeletingPathExtension];
+    metadata.author = [mobi author];
     NSMutableArray *chapters = [NSMutableArray array];
     NSInteger totalWords = 0;
-    int32_t partCount = xenolexia_mobi_part_count(mobi);
+    NSInteger partCount = [mobi partCount];
     if (partCount > 0) {
-        for (int32_t i = 0; i < partCount; i++) {
-            char *part = xenolexia_mobi_copy_part(mobi, i);
-            NSString *content = [self stringFromCAndFree:part freeFn:xenolexia_mobi_free] ?: @"";
+        for (NSInteger i = 0; i < partCount; i++) {
+            NSString *content = [mobi partAtIndex:i] ?: @"";
             NSArray *words = [content componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
             words = [words filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"length > 0"]];
             NSInteger wc = [words count];
             totalWords += wc;
             XLChapter *ch = [[XLChapter alloc] init];
             ch.chapterId = [[NSUUID UUID] UUIDString];
-            ch.title = [NSString stringWithFormat:@"Part %d", (int)(i + 1)];
+            ch.title = [NSString stringWithFormat:@"Part %ld", (long)(i + 1)];
             ch.index = (NSInteger)i;
             ch.content = content;
             ch.wordCount = wc;
             [chapters addObject:ch];
             [ch release];
         }
-    }
-    else {
-        char *full = xenolexia_mobi_copy_full_text(mobi);
-        NSString *content = [self stringFromCAndFree:full freeFn:xenolexia_mobi_free] ?: @"";
+    } else {
+        NSString *content = [mobi fullText] ?: @"";
         NSArray *words = [content componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
         words = [words filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"length > 0"]];
         totalWords = [words count];
@@ -180,7 +156,6 @@
         [chapters addObject:ch];
         [ch release];
     }
-    xenolexia_mobi_close(mobi);
     if ([chapters count] == 0) {
         XLChapter *ch = [[XLChapter alloc] init];
         ch.chapterId = [[NSUUID UUID] UUIDString];

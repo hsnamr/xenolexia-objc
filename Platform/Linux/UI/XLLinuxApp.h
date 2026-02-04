@@ -16,7 +16,7 @@
 #import "Screens/XLStatisticsWindowController.h"
 #import "../../../Core/Services/XLStorageServiceDelegate.h"
 #import "../../../Core/Models/Reader.h"
-#import "../../../SmallStep/SmallStep/Core/SSAppDelegate.h"
+#import "SSAppDelegate.h"
 
 @interface XLLinuxApp : NSObject <SSAppDelegate, NSApplicationDelegate, XLLibraryWindowDelegate, XLBookDetailWindowDelegate, XLReaderWindowDelegate, XLVocabularyWindowDelegate, XLReviewWindowDelegate, XLSettingsWindowDelegate, XLOnboardingWindowDelegate, XLStatisticsWindowDelegate, XLStorageServiceDelegate> {
     XLLibraryWindowController *_libraryController;

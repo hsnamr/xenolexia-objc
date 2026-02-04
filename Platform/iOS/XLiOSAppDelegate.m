@@ -6,9 +6,9 @@
 //
 
 #import "XLiOSAppDelegate.h"
-#import "../../../SmallStep/SmallStep/Core/SSHostApplication.h"
-#import "../../../SmallStep/SmallStep/Core/SSAppDelegate.h"
-#import "../../../SmallStep/SmallStep/Core/SSPlatform.h"
+#import "SSHostApplication.h"
+#import "SSAppDelegate.h"
+#import "SSPlatform.h"
 
 #if TARGET_OS_IPHONE
 

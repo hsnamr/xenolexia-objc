@@ -2,12 +2,12 @@
 //  XLEpubParser.h
 //  Xenolexia
 //
-//  EPUB parser using xenolexia-shared-c (EPUB3Processor).
+//  EPUB parser using native XLEpubReader (libzip + libxml2).
 
 #import <Foundation/Foundation.h>
 #import "../Models/Book.h"
 
-/// EPUB parser using xenolexia-shared-c (EPUB3Processor).
+/// EPUB parser using native XLEpubReader (libzip + libxml2).
 @interface XLEpubParser : NSObject
 
 /// Parse EPUB file and return parsed book structure

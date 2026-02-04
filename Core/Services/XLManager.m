@@ -9,6 +9,7 @@
 #import "XLTranslationService.h"
 #import "XLStorageService.h"
 #import "XLExportService.h"
+#import "SSFileSystem.h"
 #import "../../DictionaryService.h"
 #import "../../DownloadService.h"
 

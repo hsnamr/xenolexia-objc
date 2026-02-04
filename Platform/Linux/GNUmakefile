@@ -23,6 +23,11 @@ Xenolexia_OBJC_FILES = \
 	../../Core/Models/Language.m \
 	../../Core/Models/Vocabulary.m \
 	../../Core/Models/Reader.m \
+	../../Core/Native/XLSm2.m \
+	../../Core/Native/XLEpubReader.m \
+	../../Core/Native/XLFB2Reader.m \
+	../../Core/Native/XLPDFReader.m \
+	../../Core/Native/XLMobiReader.m \
 	../../Core/Services/XLBookParserService.m \
 	../../Core/Services/XLEpubParser.m \
 	../../Core/Services/XLNativeParsers.m \
@@ -47,6 +52,7 @@ Xenolexia_INCLUDE_DIRS = \
 	-IUI/Screens \
 	-I../../Core/Models \
 	-I../../Core/Services \
+	-I../../Core/Native \
 	-I$(SMALLSTEP_DIR)/SmallStep/Core \
 	-I$(SMALLSTEP_DIR)/SmallStep/Platform/Linux \
 	-I../../ \
@@ -64,10 +70,8 @@ Xenolexia_HEADER_FILES = \
 	UI/Screens/XLOnboardingWindowController.h \
 	UI/Screens/XLStatisticsWindowController.h
 
-# Link against SQLite, libxml2, zlib, and xenolexia-shared-c (SM-2, EPUB, PDF, FB2, MOBI)
-SHARED_C_DIR = ../../../xenolexia-shared-c
-Xenolexia_INCLUDE_DIRS += -I$(SHARED_C_DIR)
-Xenolexia_LIBRARIES_DEPEND_UPON = -lsqlite3 -lxml2 -lz -lxenolexia_sm2 -lxenolexia_epub -lxenolexia_pdf -lxenolexia_fb2 -lxenolexia_mobi
-ADDITIONAL_LDFLAGS = -L/lib/x86_64-linux-gnu -L$(SHARED_C_DIR)
+# Link against SmallStep (from xenolexia-objc/lib), SQLite, libxml2, zlib, libzip
+Xenolexia_LIBRARIES_DEPEND_UPON = -lSmallStep -lsqlite3 -lxml2 -lz -lzip
+ADDITIONAL_LDFLAGS = -L$(SMALLSTEP_LIB) -L/lib/x86_64-linux-gnu
 
 include $(GNUSTEP_MAKEFILES)/application.make

@@ -10,8 +10,8 @@
 #import "../../../Core/Services/XLStorageService.h"
 #import "../../../Core/Services/XLManager.h"
 #import "../../../Core/Models/Vocabulary.h"
-#import "../../../SmallStep/SmallStep/Core/SSHostApplication.h"
-#import "../../../SmallStep/SmallStep/Core/SSMainMenu.h"
+#import "SSHostApplication.h"
+#import "SSMainMenu.h"
 
 @implementation XLLinuxApp
 

@@ -8,8 +8,8 @@
 #import "../Models/Language.h"
 #import "../Models/Vocabulary.h"
 #import "../Models/Reader.h"
-#import "../../../SmallStep/SmallStep/Core/SSFileSystem.h"
-#include "sm2.h"
+#import "SSFileSystem.h"
+#import "../Native/XLSm2.h"
 
 // SQLite3 declarations (minimal interface for GNUStep compatibility)
 // Note: Install libsqlite3-dev package for full sqlite3.h header
@@ -704,23 +704,22 @@ void sqlite3_free(void *p);
         }
         return;
     }
-    /* Use shared C SM-2 from xenolexia-shared-c for identical behaviour with C# */
-    xenolexia_sm2_state_t state = {
-        .ease_factor = item.easeFactor,
-        .interval = (int)item.interval,
-        .review_count = item.reviewCount,
-        .status = XENOLEXIA_SM2_NEW
-    };
-    xenolexia_sm2_step((int)quality, &state);
-    NSInteger rc = state.review_count;
-    double ef = state.ease_factor;
+    /* Use native ObjC SM-2 (XLSm2) for identical behaviour with C# / xenolexia-shared-c */
+    XLSm2State *state = [[[XLSm2State alloc] init] autorelease];
+    state.easeFactor = item.easeFactor;
+    state.interval = item.interval;
+    state.reviewCount = item.reviewCount;
+    state.status = (XLSm2Status)item.status;
+    XLSm2Step((NSInteger)quality, state);
+    NSInteger rc = state.reviewCount;
+    double ef = state.easeFactor;
     NSInteger iv = state.interval;
     XLVocabularyStatus newStatus = item.status;
     switch (state.status) {
-        case XENOLEXIA_SM2_LEARNING: newStatus = XLVocabularyStatusLearning; break;
-        case XENOLEXIA_SM2_REVIEW:   newStatus = XLVocabularyStatusReview; break;
-        case XENOLEXIA_SM2_LEARNED:  newStatus = XLVocabularyStatusLearned; break;
-        default:                     newStatus = XLVocabularyStatusNew; break;
+        case XLSm2StatusLearning: newStatus = XLVocabularyStatusLearning; break;
+        case XLSm2StatusReview:   newStatus = XLVocabularyStatusReview; break;
+        case XLSm2StatusLearned:  newStatus = XLVocabularyStatusLearned; break;
+        default:                  newStatus = XLVocabularyStatusNew; break;
     }
     long long nowMs = (long long)([[NSDate date] timeIntervalSince1970] * 1000);
     NSString *upSql = @"UPDATE vocabulary SET last_reviewed_at = ?, review_count = ?, ease_factor = ?, interval = ?, status = ? WHERE id = ?";

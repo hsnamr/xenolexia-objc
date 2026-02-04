@@ -2,48 +2,50 @@
 //  main.m
 //  Xenolexia Core Tests
 //
-//  Tests shared C library (xenolexia-shared-c) SM-2 and documents test status.
-//  Link with: -L../../xenolexia-shared-c -lxenolexia_sm2 -I../../xenolexia-shared-c
+//  Tests native ObjC SM-2 (XLSm2). No xenolexia-shared-c required.
 //
 
 #import <Foundation/Foundation.h>
-#include "sm2.h"
-#include <stdio.h>
-#include <stdlib.h>
+#import "../Native/XLSm2.h"
+#import <stdio.h>
+#import <stdlib.h>
 
 static int test_sm2_step(void) {
-    xenolexia_sm2_state_t state = {
-        .ease_factor = 2.5,
-        .interval = 0,
-        .review_count = 0,
-        .status = XENOLEXIA_SM2_NEW
-    };
-    xenolexia_sm2_step(4, &state);
-    if (state.review_count != 1 || state.interval != 1 || state.status != XENOLEXIA_SM2_LEARNING) {
-        fprintf(stderr, "SM-2 step 1 failed: count=%d interval=%d status=%d\n",
-                state.review_count, state.interval, (int)state.status);
+    XLSm2State *state = [[[XLSm2State alloc] init] autorelease];
+    state.easeFactor = 2.5;
+    state.interval = 0;
+    state.reviewCount = 0;
+    state.status = XLSm2StatusNew;
+
+    XLSm2Step(4, state);
+    if (state.reviewCount != 1 || state.interval != 1 || state.status != XLSm2StatusLearning) {
+        fprintf(stderr, "SM-2 step 1 failed: count=%ld interval=%ld status=%ld\n",
+                (long)state.reviewCount, (long)state.interval, (long)state.status);
         return 1;
     }
-    xenolexia_sm2_step(4, &state);
-    if (state.interval != 6 || state.status != XENOLEXIA_SM2_REVIEW) {
-        fprintf(stderr, "SM-2 step 2 failed: interval=%d status=%d\n", state.interval, (int)state.status);
+    XLSm2Step(4, state);
+    if (state.interval != 6 || state.status != XLSm2StatusReview) {
+        fprintf(stderr, "SM-2 step 2 failed: interval=%ld status=%ld\n", (long)state.interval, (long)state.status);
         return 1;
     }
-    xenolexia_sm2_step(2, &state);
-    if (state.interval != 0 || state.status != XENOLEXIA_SM2_LEARNING) {
-        fprintf(stderr, "SM-2 fail step failed: interval=%d status=%d\n", state.interval, (int)state.status);
+    XLSm2Step(2, state);
+    if (state.interval != 0 || state.status != XLSm2StatusLearning) {
+        fprintf(stderr, "SM-2 fail step failed: interval=%ld status=%ld\n", (long)state.interval, (long)state.status);
         return 1;
     }
     return 0;
 }
 
 int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        if (test_sm2_step() != 0) {
-            fprintf(stderr, "CoreTests FAILED\n");
-            return 1;
-        }
-        fprintf(stdout, "CoreTests PASSED (SM-2 from xenolexia-shared-c)\n");
+    (void)argc;
+    (void)argv;
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    if (test_sm2_step() != 0) {
+        fprintf(stderr, "CoreTests FAILED\n");
+        [pool drain];
+        return 1;
     }
+    fprintf(stdout, "CoreTests PASSED (XLSm2 native ObjC)\n");
+    [pool drain];
     return 0;
 }

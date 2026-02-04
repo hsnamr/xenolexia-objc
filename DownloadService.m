@@ -6,7 +6,7 @@
 #import "DownloadService.h"
 
 // SSFileSystem is compiled directly - use relative path
-#import "../SmallStep/SmallStep/Core/SSFileSystem.h"
+#import "SSFileSystem.h"
 
 @implementation DownloadService
 
