@@ -42,7 +42,8 @@ Requires: GNUStep, SmallStep, SQLite, libxml2, zlib, libzip. SM-2, EPUB, FB2, PD
 
 - Use the same desktop UI as Linux: `XLLinuxApp` + window controllers (NSWindowController).
 - Add an Xcode project with a **macOS Application** target:
-  - Source files: `Platform/macOS/main.m`, `Platform/Linux/UI/**/*.m`, `Core/**/*.m`, services. SmallStep: use `include/` headers and `lib/libSmallStep.a` (build SmallStep and run install-smallstep.sh for macOS, or add SmallStep sources to the target).
+  - Source files: `Platform/macOS/main.m`, `Platform/Linux/UI/**/*.m` (including `XLAboutWindowController.m`), `Core/**/*.m`, services. SmallStep: use `include/` headers and `lib/libSmallStep.a` (build SmallStep and run install-smallstep.sh for macOS, or add SmallStep sources to the target).
+  - Resources: Add `app_logo.png` (from project root) to Copy Bundle Resources for the About screen.
   - Link: AppKit, Foundation, Core/Native (XLSm2, XLEpubReader, XLFB2Reader, XLPDFReader, XLMobiReader), SmallStep.
 - Entry point: `Platform/macOS/main.m` → `[XLLinuxApp sharedApp] run` (same as Linux).
 
@@ -55,8 +56,9 @@ Requires: GNUStep, SmallStep, SQLite, libxml2, zlib, libzip. SM-2, EPUB, FB2, PD
 To add a full iOS app in Xcode:
 
 1. New **iOS App** target.
-2. Add `Platform/iOS/main.m`, `XLiOSAppDelegate.h/m`, Core, services, SmallStep.
-3. Replace the placeholder root view controller with a tab bar or navigation that presents Library, Vocabulary, Review, Settings, Statistics (using the same Core services and SmallStep).
+2. Add `Platform/iOS/main.m`, `XLiOSAppDelegate.h/m`, `XLAboutViewController.h/m`, `XLiOSProfileViewController.h/m`, Core, services, SmallStep.
+3. Add `Platform/iOS/Resources/app_logo.png` (or `app_logo.png` from project root) to the target's **Copy Bundle Resources**.
+4. The root is a tab bar (Library, Vocabulary, Statistics, Profile). Profile includes "About Xenolexia" which pushes the About screen (aligned with xenolexia-typescript).
 
 ## Abstractions in SmallStep
 

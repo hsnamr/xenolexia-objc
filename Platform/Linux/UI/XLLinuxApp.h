@@ -14,11 +14,12 @@
 #import "Screens/XLSettingsWindowController.h"
 #import "Screens/XLOnboardingWindowController.h"
 #import "Screens/XLStatisticsWindowController.h"
+#import "Screens/XLAboutWindowController.h"
 #import "../../../Core/Services/XLStorageServiceDelegate.h"
 #import "../../../Core/Models/Reader.h"
 #import "SSAppDelegate.h"
 
-@interface XLLinuxApp : NSObject <SSAppDelegate, NSApplicationDelegate, XLLibraryWindowDelegate, XLBookDetailWindowDelegate, XLReaderWindowDelegate, XLVocabularyWindowDelegate, XLReviewWindowDelegate, XLSettingsWindowDelegate, XLOnboardingWindowDelegate, XLStatisticsWindowDelegate, XLStorageServiceDelegate> {
+@interface XLLinuxApp : NSObject <SSAppDelegate, NSApplicationDelegate, XLLibraryWindowDelegate, XLBookDetailWindowDelegate, XLReaderWindowDelegate, XLVocabularyWindowDelegate, XLReviewWindowDelegate, XLSettingsWindowDelegate, XLOnboardingWindowDelegate, XLStatisticsWindowDelegate, XLAboutWindowDelegate, XLStorageServiceDelegate> {
     XLLibraryWindowController *_libraryController;
     XLBookDetailWindowController *_bookDetailController;
     XLReaderWindowController *_readerController;
@@ -27,6 +28,7 @@
     XLSettingsWindowController *_settingsController;
     XLOnboardingWindowController *_onboardingController;
     XLStatisticsWindowController *_statisticsController;
+    XLAboutWindowController *_aboutController;
     id _statusItem; // NSStatusItem if system tray is supported (Phase 7.3)
 }
 

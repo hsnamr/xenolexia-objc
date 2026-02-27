@@ -4,6 +4,7 @@
 //
 
 #import "XLLinuxApp.h"
+#import "Screens/XLAboutWindowController.h"
 #import "Screens/XLLibraryWindowController.h"
 #import "Screens/XLBookDetailWindowController.h"
 #import "Screens/XLReaderWindowController.h"
@@ -34,6 +35,7 @@
         _settingsController = nil;
         _onboardingController = nil;
         _statisticsController = nil;
+        _aboutController = nil;
     }
     return self;
 }
@@ -271,6 +273,7 @@
         [SSMainMenuItem itemWithTitle:@"Review" action:@selector(showReview:) keyEquivalent:@"3" modifierMask:NSControlKeyMask target:self],
         [SSMainMenuItem itemWithTitle:@"Settings" action:@selector(showSettings:) keyEquivalent:@"4" modifierMask:NSControlKeyMask target:self],
         [SSMainMenuItem itemWithTitle:@"Statistics" action:@selector(showStatistics:) keyEquivalent:@"5" modifierMask:NSControlKeyMask target:self],
+        [SSMainMenuItem itemWithTitle:@"About Xenolexia" action:@selector(showAbout:) keyEquivalent:@"" modifierMask:0 target:self],
     ];
     [mainMenu buildMenuWithItems:items quitTitle:@"Quit Xenolexia" quitKeyEquivalent:@"q"];
 }
@@ -300,6 +303,24 @@
 - (void)showStatistics:(id)sender {
     (void)sender;
     [self libraryDidRequestStatistics];
+}
+
+- (void)showAbout:(id)sender {
+    (void)sender;
+    if (!_aboutController) {
+        _aboutController = [[XLAboutWindowController alloc] init];
+        [_aboutController setDelegate:self];
+    }
+    [_aboutController showWindow:nil];
+}
+
+- (void)aboutWindowDidClose {
+    [_aboutController release];
+    _aboutController = nil;
+}
+
+- (void)libraryDidRequestAbout {
+    [self showAbout:nil];
 }
 
 - (void)setupTrayIcon {

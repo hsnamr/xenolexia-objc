@@ -6,6 +6,8 @@
 //
 
 #import "XLiOSAppDelegate.h"
+#import "XLAboutViewController.h"
+#import "XLiOSProfileViewController.h"
 #import "SSHostApplication.h"
 #import "SSAppDelegate.h"
 #import "SSPlatform.h"
@@ -36,13 +38,32 @@
 }
 
 - (UIViewController *)createRootViewController {
-    // Placeholder: tab bar or navigation with Library, Vocabulary, Review, Settings, Statistics.
-    UIViewController *root = [[UIViewController alloc] init];
-    root.title = @"Xenolexia";
-    root.view.backgroundColor = [UIColor systemBackgroundColor];
-    UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:root];
-    [root release];
-    return [nav autorelease];
+    // Tab bar aligned with xenolexia-typescript: Library, Vocabulary, Statistics, Profile
+    UITabBarController *tabBar = [[[UITabBarController alloc] init] autorelease];
+
+    UIViewController *libraryVC = [[[UIViewController alloc] init] autorelease];
+    libraryVC.title = @"Library";
+    libraryVC.tabBarItem = [[[UITabBarItem alloc] initWithTitle:@"Library" image:nil tag:0] autorelease];
+    libraryVC.view.backgroundColor = [UIColor systemBackgroundColor];
+    UINavigationController *libraryNav = [[[UINavigationController alloc] initWithRootViewController:libraryVC] autorelease];
+
+    UIViewController *vocabVC = [[[UIViewController alloc] init] autorelease];
+    vocabVC.title = @"Vocabulary";
+    vocabVC.tabBarItem = [[[UITabBarItem alloc] initWithTitle:@"Words" image:nil tag:1] autorelease];
+    vocabVC.view.backgroundColor = [UIColor systemBackgroundColor];
+    UINavigationController *vocabNav = [[[UINavigationController alloc] initWithRootViewController:vocabVC] autorelease];
+
+    UIViewController *statsVC = [[[UIViewController alloc] init] autorelease];
+    statsVC.title = @"Statistics";
+    statsVC.tabBarItem = [[[UITabBarItem alloc] initWithTitle:@"Stats" image:nil tag:2] autorelease];
+    statsVC.view.backgroundColor = [UIColor systemBackgroundColor];
+    UINavigationController *statsNav = [[[UINavigationController alloc] initWithRootViewController:statsVC] autorelease];
+
+    XLiOSProfileViewController *profileVC = [[[XLiOSProfileViewController alloc] init] autorelease];
+    UINavigationController *profileNav = [[[UINavigationController alloc] initWithRootViewController:profileVC] autorelease];
+
+    tabBar.viewControllers = @[libraryNav, vocabNav, statsNav, profileNav];
+    return tabBar;
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application {

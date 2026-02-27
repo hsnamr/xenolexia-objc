@@ -148,6 +148,13 @@
     [_resetButton setAction:@selector(resetClicked:)];
     [contentView addSubview:_resetButton];
 
+    NSButton *aboutButton = [[NSButton alloc] initWithFrame:NSMakeRect(20, 20, 120, 32)];
+    [aboutButton setTitle:@"About Xenolexia"];
+    [aboutButton setTarget:self];
+    [aboutButton setAction:@selector(aboutButtonClicked:)];
+    [contentView addSubview:aboutButton];
+    [aboutButton release];
+
     [self prefsToForm];
 }
 
@@ -254,6 +261,13 @@
     _prefs = [[XLUserPreferences defaultPreferences] retain];
     [self prefsToForm];
     [_storageService savePreferences:_prefs delegate:self];
+}
+
+- (IBAction)aboutButtonClicked:(id)sender {
+    (void)sender;
+    if (_delegate && [_delegate respondsToSelector:@selector(libraryDidRequestAbout)]) {
+        [_delegate libraryDidRequestAbout];
+    }
 }
 
 - (void)windowWillClose:(NSNotification *)notification {

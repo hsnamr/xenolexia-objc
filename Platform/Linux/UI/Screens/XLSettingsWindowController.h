@@ -13,6 +13,8 @@
 
 @protocol XLSettingsWindowDelegate <NSObject>
 - (void)settingsWindowDidClose;
+@optional
+- (void)libraryDidRequestAbout;  /* Open About Xenolexia from Settings */
 @end
 
 @interface XLSettingsWindowController : NSWindowController <XLStorageServiceDelegate> {

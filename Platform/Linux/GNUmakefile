@@ -21,6 +21,7 @@ Xenolexia_OBJC_FILES = \
 	UI/Screens/XLSettingsWindowController.m \
 	UI/Screens/XLOnboardingWindowController.m \
 	UI/Screens/XLStatisticsWindowController.m \
+	UI/Screens/XLAboutWindowController.m \
 	../../Core/Models/Book.m \
 	../../Core/Models/Language.m \
 	../../Core/Models/Vocabulary.m \
@@ -76,7 +77,11 @@ Xenolexia_HEADER_FILES = \
 	UI/Screens/XLReviewWindowController.h \
 	UI/Screens/XLSettingsWindowController.h \
 	UI/Screens/XLOnboardingWindowController.h \
-	UI/Screens/XLStatisticsWindowController.h
+	UI/Screens/XLStatisticsWindowController.h \
+	UI/Screens/XLAboutWindowController.h
+
+# Resources (app_logo.png for About screen)
+Xenolexia_RESOURCE_FILES = ../../app_logo.png
 
 # Link against SmallStep (from xenolexia-objc/lib), SQLite, libxml2, zlib, libzip, libcurl (downloads)
 Xenolexia_LIBRARIES_DEPEND_UPON = -lSmallStep -lsqlite3 -lxml2 -lz -lzip -lcurl
